@@ -22,9 +22,10 @@
 \documentclass{article}
 
 \input{structure.tex}
+\usepackage{amsmath,amssymb}
 
 \title{COMS3200: Revision} % Title of the document
-\author{The bois}
+\author{Team Collusion}
 \date{University of Queensland --- \today}
 \begin{document}
 
@@ -57,7 +58,7 @@
     
     \item[Digital Subscriber Line (DSL)] Digital subscriber line (DSL; originally digital subscriber loop) is a family of technologies that are used to transmit digital data over telephone lines. In telecommunications marketing, the term DSL is widely understood to mean asymmetric digital subscriber line (ADSL), the most commonly installed DSL technology, for Internet access. DSL service can be delivered simultaneously with wired telephone service on the same telephone line since DSL uses higher frequency bands for data. On the customer premises, a DSL filter on each non-DSL outlet blocks any high-frequency interference to enable simultaneous use of the voice and DSL services. A residence typically obtains DSL Internet access
     from the same local telephone company (telco) that provides its wired local phone
-    access. Thus, when DSL is used, a customer’s telco is also its ISP. Eeach customer’s DSL modem uses the existing telephone line (twistedpair copper wire, which we’ll discuss in Section 1.2.2) to exchange data with a digital
+    access. Thus, when DSL is used, a customer’s telco is also its ISP. Eeach customer’s DSL modem uses the existing telephone line to exchange data with a digital
     subscriber line access multiplexer (DSLAM) located in the telco’s local central
     office (CO). The home’s DSL modem takes digital data and translates it to highfrequency
     tones for transmission over telephone wires to the CO; the analog signals
@@ -145,7 +146,6 @@
     exclusively. Fiber optics is also prevalent in the backbone of the Internet. However,
     the high cost of optical devices—such as transmitters, receivers, and switches—has
     hindered their deployment for short-haul transport, such as in a LAN or into the
-    20 CHAPTER 1 • COMPUTER NETWORKS AND THE INTERNET
     home in a residential access network. The Optical Carrier (OC) standard link speeds
     range from 51.8 Mbps to 39.8 Gbps; these specifications are often referred to as OCn,
     where the link speed equals n × 51.8 Mbps.
@@ -182,4 +182,451 @@
     above one spot on Earth. They rotate around Earth (just as the Moon does) and may
     communicate with each other, as well as with ground stations.
 \end{description}
+
+
+\subsection*{Network Core (Section 1.3)}
+
+\begin{description}
+    \item[Packet-Switching] 
+    Uses \textit{store and forward} idea: entire packet must arrive at router before it can be
+    transmitted on the next link. Takes $\frac LR$ seconds to transmit entire $L$-bit packet into 
+    link at $R$bps. Thus, end-to-end delay is $2\frac LR$, assuming same bps at both ends.
+    If the arrival rate in bits exceeds transmission rate of link, packets are queued in a buffer.
+    Packet loss occurs when packet arrives and buffer is full. Protocols must supply congestion
+    control and reliable data transfer.
+    
+    \item[Circuit Switching]
+    End-to-end resources allocated and reserved for duration of communication between source and 
+    destination. Resources are dedicated, so circuit-like performance is guaranteed, however segment
+    is idle if not being used and thus wasted resources. Can allocate resources using Frequency
+    Division Multiplexing (certain frequency allocated per user) or Time Division Multiplexing
+    (certain time frame allocated per user).
+\end{description}
+
+\subsection*{Delay and Throughput (Section 1.4)}
+
+Total delay at a node (router) is given by
+\[
+    d_{\text{nodal}} = d_{\text{proc}} + d_{\text{queue}} + d_{\text{trans}} + d_{\text{prop}}.
+\]
+% NOTE: Maybe include A1 PART A as an example?
+\begin{description}
+    \item[Nodal processing]
+    Time used to check bits for errors and determine output link for packet.
+    
+    \item[Queueing delay]
+    Time spend in the queue waiting out output link for transmission, depending largely on level of
+    congestion at router.
+    
+    \item[Transmission delay]
+    Determined by $\frac LR$ where $L$ is the length of the packet in bits and $R$ is the link 
+    bandwidth in bps.
+    
+    \item[Propagation delay]
+    Given by $\frac ds$ where $d$ is the length (distance) of the physical link and $s$ is the 
+    propagation speed.
+    
+    \item[Throughput]
+    The rate at which bits are transferred between sender/receiver, measured in bits per time unit 
+    (different from delay). If a server has a throughput of $R_s$bps and a client has a throughput of
+    $R_c$bps, then a bottleneck occurs at $\min\{R_c,R_s\}.$
+\end{description}
+
+
+\subsection*{Protocol Layers and Their Service Models (Section 1.5)}
+
+\begin{description}
+    \item[Layers] To provide structure to the design of network protocols, network designers organize protocols and the network hardware and software that implement the protocols in layers. A layer serves the layer above it and is served by the layer below it. For example, a layer that provides error-free communications across a network provides the path needed by applications above it, while it calls the next lower layer to send and receive packets that constitute the contents of that path. Each protocol belongs to one of the layers. Layering provides a way of hiding the working details of a subsystem, allowing the separation of concerns to facilitate interoperability and platform independence.
+    
+    \begin{figure}[H]
+        \includegraphics[scale=0.5]{images/5_layer_overview.png}
+        \centering
+        \caption{Pictorial Layer Summary (bc we all love pictures!)}
+    \end{figure}
+    
+    \begin{description}
+        \item[Application Layer] The application layer is where network applications and their application layer protocols reside. The Internet’s application layer includes many protocols, such as the HTTP protocol (which provides for Web document request and transfer), SMTP (which provides for the transfer of e-mail messages), and FTP (which provides for the transfer of files between two end systems). An application-layer protocol is distributed over multiple end systems, with the
+        application in one end system using the protocol to exchange packets of information
+        with the application in another end system. We’ll refer to this packet of information
+        at the application layer as a {\bf message}.
+        
+        \item[Transport Layer] The Internet’s transport layer transports application-layer messages between
+        application endpoints. In the Internet there are two transport protocols, TCP and
+        UDP, either of which can transport application-layer messages. TCP provides a
+        connection-oriented service to its applications. This service includes guaranteed
+        delivery of application-layer messages to the destination and flow control (that is,
+        sender/receiver speed matching). TCP also breaks long messages into shorter segments
+        and provides a congestion-control mechanism, so that a source throttles its
+        transmission rate when the network is congested. The UDP protocol provides a connectionless
+        service to its applications. This is a no-frills service that provides no
+        reliability, no flow control, and no congestion control. In this book, we’ll refer to a
+        transport-layer packet as a {\bf segment}.
+        
+        \item[Network Layer] The Internet’s network layer is responsible for moving network-layer packets
+        known as {\bf datagrams} from one host to another. The Internet transport-layer protocol
+        (TCP or UDP) in a source host passes a transport-layer segment and a destination
+        address to the network layer, just as you would give the postal service a letter
+        with a destination address. The network layer then provides the service of delivering
+        the segment to the transport layer in the destination host.
+        The Internet’s network layer includes the celebrated IP Protocol, which defines
+        the fields in the datagram as well as how the end systems and routers act on these
+        fields. There is only one IP protocol, and all Internet components that have a network
+        layer must run the IP protocol. The Internet’s network layer also contains routing
+        protocols that determine the routes that datagrams take between sources and destinations. The Internet has many routing protocols.
+        
+        \item[Link Layer] The Internet’s network layer routes a datagram through a series of routers between
+        the source and destination. To move a packet from one node (host or router) to the
+        next node in the route, the network layer relies on the services of the link layer. In
+        particular, at each node, the network layer passes the datagram down to the link
+        layer, which delivers the datagram to the next node along the route. At this next
+        node, the link layer passes the datagram up to the network layer.
+        The services provided by the link layer depend on the specific link-layer protocol
+        that is employed over the link. For example, some link-layer protocols provide
+        reliable delivery, from transmitting node, over one link, to receiving node. Note that
+        this reliable delivery service is different from the reliable delivery service of TCP,
+        which provides reliable delivery from one end system to another. Examples of linklayer
+        protocols include Ethernet, WiFi, and the cable access network’s DOCSIS protocol.
+        As datagrams typically need to traverse several links to travel from source to
+        destination, a datagram may be handled by different link-layer protocols at different
+        links along its route. For example, a datagram may be handled by Ethernet on one
+        link and by PPP on the next link. The network layer will receive a different service
+        from each of the different link-layer protocols. In this book, we’ll refer to the linklayer
+        packets as {\bf frames}.
+        
+        \item[Physical Layer] While the job of the link layer is to move entire frames from one network element
+        to an adjacent network element, the job of the physical layer is to move the individual
+        bits within the frame from one node to the next. The protocols in this layer are
+        again link dependent and further depend on the actual transmission medium of the
+        link (for example, twisted-pair copper wire, single-mode fiber optics). For example,
+        Ethernet has many physical-layer protocols: one for twisted-pair copper wire,
+        another for coaxial cable, another for fiber, and so on. In each case, a bit is moved
+        across the link in a different way.
+    \end{description}
+    
+    \item[Examples of each layer]$\hfill$
+    \begin{enumerate}
+            \item[5.] \textbf{Application Layer}: supporting network application (FTP, SMTP, HTTP)
+            \item[4.] \textbf{Transport Layer}: process-process data transfer (TCP, UDP)
+            \item[3.] \textbf{Network Layer}: routing of datagrams from source to destination (IP, routing 
+            protocols)
+            \item[2.] \textbf{Link Layer}: data transfer between neighbouring network elements (Ethernet, 
+            Wifi, ARP)
+            \item[1.] \textbf{Physical Layer}: bits ``on the wire'' (or spectrum)
+    \end{enumerate}
+    
+    
+\end{description}
+
+\section*{Ch 2. Application Layer}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Principles of network applications (Section ?.?.?)}
+
+\begin{description}
+    \item[Client-Server model] An ``always-on'' \textbf{server} acts as a host, with a permanent IP 
+    address, so that a \textbf{client} may intermittently connect with the server. Clients may have
+    dynamic IP addresses and communicate only with the server, never between other clients. 
+    Processes running in this model are either a client process (one which initiates communication)
+    or a server process (one which waits to be contacted).
+    
+    \item[P2P Architecture] There is no ``always-on server''; peers request service from other peers
+    and also provide a service if another peer requests it. They are intermittently connected and
+    may change IP addresses. Peers communicate directly with each other. Processes act as a client
+    and server process.
+\end{description}
+
+\subsection*{Web and HTTP (Section ?.?.?)}
+
+\begin{description}
+    \item[Round Trip Time (RTT)] Time for a small packet to travel from the client to the server and
+    back.
+    
+    \item[Non-persistent HTTP] At most one object is sent over a TCP connection, which is then closed
+    after it is received. Therefore, downloading multiple objects required multiple connections with 
+    the server. When requesting an object, the total time taken $2RTT+\text{file transmission time}$.
+    This occurs per object, so when requesting multiple objects, browsers often open parallel TCP
+    connections to fetch each.
+    
+    \item[Persistent HTTP] Multiple objects can be sent over a single TCP connection, as the server
+    leaves the connection open after sending its response. A client sends a request as soon as it 
+    encounters a referenced object, so as little as $1RTT$ is required for all objects, since the 
+    same open connection is used.
+    
+    \item[HTTP Request]
+    A HTTP request message is formatted as
+    \begin{align*}
+        &\texttt{METHOD REQUEST-URI HTTP-VERSION\textbackslash r\textbackslash n}\\
+        &\texttt{REQUEST-HEADER\textbackslash r\textbackslash n}\\
+        &\dots\\
+        &\texttt{\textbackslash r\textbackslash n}
+    \end{align*}
+    where $\texttt{METHOD}\in\{\texttt{GET, POST, HEAD}\}$ and
+    \begin{align*}
+        \texttt{REQUEST-HEADER}\in\{&\texttt{Accept, \dots, Authorization, Expect, From, Host, If-Match,}\\
+        &\texttt{If-Modified-Since,\dots, If-Unmodified-since, User-Agent,\dots}\}.
+    \end{align*}
+    
+        \item[HTTP Response]
+    A HTTP response message is formatted as
+    \begin{align*}
+        &\texttt{HTTP-VERSION STATUS-CODE REASON-PHRASE\textbackslash r\textbackslash n}\\
+        &\texttt{RESPONSE-HEADER\textbackslash r\textbackslash n}\\
+        &\dots\\
+        &\texttt{\textbackslash r\textbackslash n}\\
+        &\texttt{[message body]}
+    \end{align*}
+    where \texttt{STATUS-CODE} and \texttt{REASON-PHRASE} are given by
+    \begin{enumerate}
+        \item[100] Continue
+        \item[200] OK
+        \item[301] Moved Permanently
+        \item[400] Bad Request
+        \item[401] Unauthorized
+        \item[403] Forbidden
+        \item[404] Not Found
+        \item[500] Internal Server Error
+        \item[502] Bad Gateway
+    
+        \item[1xx] Informational - Request received, continuing process
+        \item[2xx] Success - The action was successfully received, understood, and accepted
+        \item[3xx] Redirection - Further action must be taken in order to complete the request
+        \item[4xx] Client Error - The request contains bad syntax or cannot be fulfilled
+        \item[5xx] Server Error - The server failed to fulfill an apparently valid request
+    \end{enumerate}
+    among others and 
+    \[
+        \texttt{RESPONSE-HEADER}\in\{\texttt{Accept-Ranges, Last-Modified, Content-Length, Content-type\dots}\}.
+    \]
+    
+    \item[Cookies] May be used to keep information about the ``state'' between the client and the 
+    server. Can be used for authorization, shopping carts, recommendations, etc.
+    
+    \item[Web Caches] A proxy server may be used to cache common HTTP requests for faster response 
+    times. If an object is in the cache, then the proxy server returns it to the requesting client.
+    If it is not in the cache, the proxy forwards the request to the server, then forwards the 
+    servers response to the client and caches it.
+\end{description}
+
+\subsection*{E-mail (Section ?.?)}
+
+\begin{description}
+    \item[User Agent] The ``mail reader'' and is used to compose, edit, read, etc mail messages.
+    Outgoing and incoming messages are stored on the server. Examples include Outlook, Thunderbird, etc.
+    
+    \item[Mail server] Contains \textbf{mailbox} of incoming messages for a user and a \textbf{message queue}
+    of outgoing (to be sent) mail messages.
+    
+    \item[Simple Mail Transfer Protocol(SMTP)] for sending messages between mail servers. Uses TCP on
+    port 25 as a persistent connection. Contains a handshake, transfer of messages and closure in a
+    command/response like interaction.
+    
+    \item[Mail Access protocols] For retrieving mail from a mail server. Eg POP, IMAP, HTTP.
+\end{description}
+
+\subsection*{DNS: Domain Name System (Section ?.?.?)}
+
+\begin{description}
+    \item[Services/Structure] Hostname (e.g google.com) to IP address translation. It is implemented
+    in a hierarchy of many \textbf{name servers}, which communicate to resolve names (translate).
+    There are $13$ logical root name servers world wide, though they are replicated many times.
+    
+    \item[Top-level domain server (TLD)] Responsible for com, org, net, edu, aero, jobs, museums and 
+    all top-level country domains.
+    
+    \item[Authoritative DNS serves] Organizations own DNS server, providing hostname to IP mappings
+    for organizations named hosts.
+    
+    \item[Local DNS name server] Each ISP may maintain their own. When a DNS request is sent from a 
+    host, it is sent to this server. It has a cache of recent requests and acts as a proxy, forwarding
+    requests into the hierarchy.
+    
+    \item[Iterated Query] When the contacted server replies with the name of some other server to 
+    contact in order to resolve the request.
+    
+    \item[Recursive Query] When the contacted server determines the name resolution on its own. It 
+    may contact other servers which in turn do this, hence ``recursive.''
+    
+    \item[Record types] DNS is essentially a distributed database storing resource records (RR) of 
+    the form \\
+    $(\texttt{name, value, type, ttl})$ where $\texttt{type}\in\{\texttt{A, NS, CNAME, 
+    MX}\}$:
+    \begin{description}
+        \item[A] \texttt{name} is hostname and \texttt{value} is IP address.
+        \item[NS] \texttt{name} is domain (foo.com) and \texttt{value} is hostname of authoritative
+        name server for this domain
+        \item[CNAME] \texttt{name} is alias for some canonical (real) name and \texttt{value} is 
+        canocnical name
+        \item[MX] \texttt{value} is name of mailserver associated with \texttt{name}.
+    \end{description}
+    
+    \item[DNS format] A DNS message looks like
+    %TODO insert image
+    
+    \item[Attacking DNS] Root and TLD servers may be inundated with traffic in order a denial of 
+    service attack. Can also intercept queries from DNS servers and send bogus replies to them, which
+    are usually cached.
+\end{description}
+
+\section*{Ch 3. Transport Layer}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Principles of Transport Layer protocols}
+
+\begin{description}
+    \item[Services] Provides logical communication between app processes running on different hosts.
+    Sender breaks app message into segments, which are passed to the network layer whereas receiver
+    reassembles segments into app message and passes them up to application layer.
+    
+    \item[Multiplexing] Done at sender-side and handles data from multiple sockets, adding the 
+    transport layer header.
+    
+    \item[Demultiplexing] Done at receiver-side and uses header info to deliver received segments to
+    the correct socket. In a connectionless protocol, only the destination port number and IP 
+    address is used to determine which socket to send the received data through. In a
+    connection-orientated protocol, the source and destination addresses and port numbers are used to
+    uniquely identify a socket.
+\end{description}
+
+\subsection*{User Datagram Protocol (UDP)}
+
+\begin{description}
+    \item[Connectionless] No handshake between sender and receiver; each UDP segment is handled
+    independently of others. Segments may be lost or delivered out-of-order, in which case it is up
+    to the application to handle this re-request or reorder the segments. Used as there is no handshake
+    (meaning no delay), it is simple, small header size and there is no congestion control so segments
+    can be sent as fast as desired.
+    
+    \item[Checksum] Used to detect errors in transmitted segment. A sender computes the checksum by
+    treating all data in the datagram (header + payload) as 16bit words and adds them together using
+    one's complement sum and puts the result in the ``checksum'' header field. A receiver then adds
+    all 16bit values of header and payload: if the result is $0$, no error is detected, else an error
+    is detected.
+    
+    \item[Header] A typical UDP header looks like 
+    %TODO include figure
+\end{description}
+
+\subsection*{Reliable Data Transfer}
+
+\begin{description}
+    \item[RDT1.0] Base step for building RDT. Sender will
+    \begin{enumerate}
+        \item Wait for call from above
+        \item Make the segment and send it
+        \item Repeat above process
+    \end{enumerate}
+    Receiver will
+    \begin{enumerate}
+        \item Wait for call from below
+        \item Extract data from segment and push it to above layer
+        \item Repeat above process
+    \end{enumerate}
+    
+    \item[RDT2.0] Adds error detection via checksum and feedback via ACK/NAK. Sender will
+    \begin{enumerate}
+        \item Wait for call from above
+        \item Make segment and send it
+        \item Wait for response. If response is NAK repeat step, else (ACK received) continue
+        \item Repeat above process
+    \end{enumerate}
+    Receiver will
+    \begin{enumerate}
+        \item Wait for call from below
+        \item If received packet is corrupted send NAK, else extract data and push it to above layer 
+        and send ACK
+        \item Repeat above process
+    \end{enumerate}
+    
+    \item[RDT2.1] Adds sequence numbers to segments. Sender will
+    \begin{enumerate}
+        \item Wait for call from above with seq=0
+        \item Make segment with seq=0 and send it
+        \item Wait for response with ACK or NAK and seq=0. If response is NAK or corrupted repeat last step,
+        else continue
+        \item Wait for call form above with seq=1
+        \item Make segment with seq=1 and send it
+        \item Wait for response with ACK or NAK and seq=1. If response is NAK or corrupted repeat last step,
+        else continue
+        \item Repeat above process
+    \end{enumerate}
+    Receiver will
+    \begin{enumerate}
+        \item Wait for call form below with seq=0
+        \item If response with has seq=1 send ACK and repeat last step. If response is corrupted send 
+        NAK and repeat last step. If response is not corrupted and has seq=0 extract data and push it 
+        to above layer and send ACK
+        \item Wait for call from below with seq=1
+        \item If response with has seq=0 send ACK and repeat last step. If response is corrupted send 
+        NAK and repeat last step. If response is not corrupted and has seq=1 extract data and push it 
+        to above layer and send ACK
+        \item Repeat above process
+    \end{enumerate}
+    
+    \item[RDT2.2] Removes NAK by only sending ACK for last received segment if OK. Sender will
+    \begin{enumerate}
+        \item Wait for call from above with seq=0
+        \item Make segment with seq=0 and send it
+        \item Wait for response with ACK and seq=0. If response is corrupted repeat last step,
+        else continue
+        \item Wait for call form above with seq=1
+        \item Make segment with seq=1 and send it
+        \item Wait for response with ACK and seq=1. If response is corrupted repeat last step,
+        else continue
+        \item Repeat above process
+    \end{enumerate}
+    Receiver will
+    \begin{enumerate}
+        \item Wait for call form below with seq=0
+        \item If response with has seq=1 resend packet and repeat last step. If response is not
+        corrupted and has seq=0 extract data and push it to above layer and send ACK
+        \item Wait for call from below with seq=1
+        \item If response with has seq=0 send ACK and repeat last step. If response is corrupted send 
+        NAK and repeat last step. If response is not corrupted and has seq=1 extract data and push it 
+        to above layer and send ACK with seq=1
+        \item Repeat above process
+    \end{enumerate}
+    
+    \item[RDT3.0] Sender now waits a ``reasonable'' amount of time for ACK. Sender will
+    \begin{enumerate}
+        \item Wait for call from above with seq=0
+        \item Make segment with seq=0, send it and start timer
+        \item Wait for response with ACK and seq=0. If response is corrupted do nothing. If timeout occurs, repeat last step else stop timer and continue
+        \item Wait for call form above with seq=1
+        \item Make segment with seq=1, send it and start timer
+        \item Wait for response with ACK and seq=1. If response is corrupted do nothing. If timeout
+        occurs, repeat last step else stop timer and continue
+        \item Repeat above process 
+    \end{enumerate}
+    Receiver does not change from RDT2.2.
+    
+    \item[Pipelining] Window size of $N$ is used to transmit $N$ segments at a time. Only when the
+    smallest segment is acked can the window be advanced.
+    
+    \item[Go-back-N] Sender can have up to $N$ unacked segments in the pipeline and only has timer for
+    the last unacked segment. On timeout, the previous $N$ segments are retransmitted. The receiver
+    only sends an ACK for the highest received \textit{in-order} segment. If a segment is received
+    out of order, it is discarded. An ACK acks all previous segments.
+    
+    \item[Selective repeat] Receiver \textit[individually] acks all correctly received segments and
+    buffers segments as needed for eventual in-order delivery to upper layer. The sender only re-sends
+    segments for which it did not receive an ACK.
+\end{description}
+
+\subsection*{Transmission Control Protocol (TCP)}
+
+\begin{description}
+    \item[Connection-oriented] There is one sender and one receiver per socket. A three-way handshake
+    is used to initiate communication between sender and receiver. Provides reliable in-order byte stream,
+    flow control and connection management. The sequence number in a TCP header is the byte stream
+    number of the first byte in the segments data. The acknowledgement number is the sequence number
+    of the next expected byte. 
+    
+    \item[Header] A TCP header looks like
+    %TODO figure of tcp heade. Also explain scaling (e.g. window size)
+\end{description}
+
 \end{document}
