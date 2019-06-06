@@ -211,7 +211,7 @@ Total delay at a node (router) is given by
 \]
 % NOTE: Maybe include A1 PART A as an example?
 \begin{description}
-    \item[Nodal processing]
+    \item[Processing delay]
     Time used to check bits for errors and determine output link for packet.
     
     \item[Queueing delay]
@@ -611,7 +611,7 @@ Total delay at a node (router) is given by
     only sends an ACK for the highest received \textit{in-order} segment. If a segment is received
     out of order, it is discarded. An ACK acks all previous segments.
     
-    \item[Selective repeat] Receiver \textit[individually] acks all correctly received segments and
+    \item[Selective repeat] Receiver \textit{individually} acks all correctly received segments and
     buffers segments as needed for eventual in-order delivery to upper layer. The sender only re-sends
     segments for which it did not receive an ACK.
 \end{description}
@@ -625,8 +625,195 @@ Total delay at a node (router) is given by
     number of the first byte in the segments data. The acknowledgement number is the sequence number
     of the next expected byte. 
     
+    \item[RTT/Timeouts] RTT is estimated by measuring time from segment transmit until ACK receipt.
+    Average RTT is then calculated using previous average and sample taken. That is, 
+    $\texttt{NewRTT}=(1-\alpha)\cdot\texttt{OldRTT}+\alpha\cdot\texttt{SampleRTT}.$
+    Typical value of $\alpha=0.125$. Timeout is set to be slightly longer than RTT.
+    
     \item[Header] A TCP header looks like
-    %TODO figure of tcp heade. Also explain scaling (e.g. window size)
+    %TODO figure of tcp header. Also explain scaling (e.g. window size)
+\end{description}
+
+\section*{Ch 4. Network Layer: Data Plane}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Network Layer}
+
+\begin{description}
+    \item[Services] Transports segment from sending to receiving host. Sending side encapsulates 
+    segments into datagrams while receiving side delivers segments to transport layer. Network layer
+    protocols are in every host/router, which examines header fields in all IP datagrams that pass through.
+    
+    \item[Data Plane] Local, per router function determining how datagram arriving on router input 
+    port should be forwarded to appropriate router output port.
+    
+    \item[Control Plane] Network-wide logic on how datagrams should be routed among routers along
+    end-to-end path from source to destination. 
+\end{description}
+
+\subsection*{What's in a Router}
+
+\begin{description}
+    \item[Input Port Functions] When a datagram arrives via link layer, the router uses a lookup
+    table (forwarding table) to determine which output port to forward the datagram to. Datagrams may
+    be queued if arrival rate exceeds that of forwarding rate into switch fabric.
+    
+    \item[Destination-based Forwarding] Forwarding based only on destination IP address. For example,
+    \begin{center}
+    \begin{tabular}{l|c}
+        Destination address range & Link interface\\
+        \hline
+        \texttt{1100100 00010111 00010000 00000000} to \texttt{11001000 00010111 00010111 11111111} &  0\\
+        \texttt{1100100 00010111 00011000 00000000} to \texttt{11001000 00010111 00011000 11111111} &  1\\
+        \texttt{1100100 00010111 00011001 00000000} to \texttt{11001000 00010111 00011001 11111111} &  2\\
+        otherwise & 3
+    \end{tabular}
+    \end{center}
+    
+    \item[Longest prefix Matching] When looking for forwarding table entry, use the longest address 
+    prefix that matches destination address.
+    
+    \item[Switching fabric] Transfers input buffer to appropriate output buffer. The rate at which 
+    this is done is called the \textbf{switching rate} and is often measured as a multiple of 
+    input/output line rate. Three types of switching fabric:
+    %TODO insert image
+    
+    \item[Input port queuing] Occurs when switching fabric is slower than all input ports combined.
+    Datagram loss may occur upon buffer overflow. Head-of-line (HOL) blocking occurs when queued 
+    datagram at front of queue prevents others in queue from moving forward.
+    
+    \item[Output port functions] Buffers datagrams as switching fabric is usually faster. Datagrams
+    are then scheduled to based off of some priority. Recent recommendations on buffering are that
+    if there are $N$ flows and a link capacity of $C$, then buffer size should be
+    $\frac{\texttt{RTT}\cdot C}{\sqrt N}.$
+    
+    \item[Scheduling] The process of choosing which datagram to send on a link and which to drop if
+    queue becomes full. Different policies include
+    \begin{itemize}
+        \item FIFO: first in first out
+        \item tail drop: drop arriving packets if queue becomes full
+        \item priority drop: drop on basis of some priority ordering
+        \item random drop: drop randomly
+        \item priority scheduling: high priority queue and low priority queue
+        \item round robin: cyclically scan multiple classes send one complete packet at a time
+        \item weighted fair queue (WFQ): as above, but each class has a weight associated with it
+    \end{itemize}
+\end{description}
+
+\subsection*{Internet Protocol (IPv4)}
+
+\begin{description}
+    \item[Header] A typical IP datagram looks like
+    % TODO: include header
+    
+    \item[Fragmentation] Network links have a MTU (largest possible link-level frame). If a packet is
+    larger than a links MTU, it must be fragmented. The fragflag is set to 1 and the offset in a 
+    packet is the byte of the unfragmented packet divided by $8$.
+    
+    \item[Addressing] $32$-bit identifier for host/router interface: a router typically has multiple
+    interfaces. A subnet is a group of hosts with the same subnet part of IP address which can 
+    physically communicate without the router intervening. CIDR notation (Classless InterDomain 
+    Routing) defines an address as $a.b.c.d/x$ where $x$ is the number of bits in the subnet part of the
+    IP address.
+    
+    \item[Dynamic Host Configuration Protocol (DHCP)] Allows a host to dynamically obtain an IP address
+    from a network server when it joins the network. Typical exchange:
+    \begin{enumerate}
+        \item Client Broadcast (DHCP discover): is there DHCP server out there?
+        \item Server Broadcast (DHCP offer): I am a DHCP server. Here is an IP address you can use.
+        \item Client Broadcast (DHCP request): Ok, I'll take that IP address.
+        \item Server Broadcast (DHCP ACK): Ok, you have that address.
+    \end{enumerate}
+    DHCP can also return address of first-hop router for client, name and IP of local DNS server
+    and network mask.
+    
+    \item[Network Address Translation (NAT)] All datagrams leaving a local network have their source
+    IP and port replaced to that of the NAT IP and some new port. NAT translation table stores
+    (source IP, source port)$\mapsto$(NAT IP, new port) mappings. Incoming datagrams have the NAT IP
+    and new port replaced with source IP and source port.
+\end{description}
+
+\subsection*{IPv6}
+
+\begin{description}
+    \item[Header] A typical IPv6 header looks like
+    %TODO insert IPv6 header
+    
+    \item[Differences from IPv4] IPv6 does not allow for fragmentation en-route, this must be done
+    only at the source and destination. The header checksum was also removed as IPv4 contained a TTL
+    field, which meant the checksum had to be computed at every hop. 
+    
+    \item[Tunneling] Not all routers are IPv6 compatible, so the IPv6 datagram is carried as the
+    payload of a IPv4 datagram amongst IPv4 routers. 
+\end{description}
+
+\section*{Ch 5. Network Layer: Control Plane}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Structure}
+
+\begin{description}
+    \item[Per-router control] The traditional approach to structuring the control place, in which 
+    individual routing algorithm components in each and every router interact with each other in the
+    control plane in order to compute forwarding tables.
+    
+    \item[Logically centralised control] A distinct (typically remote) controller interacts with local
+    control agents (CA) in routers to compute forwarding tables. 
+\end{description}
+
+\subsection*{Routing protocols}
+
+\begin{description}
+    \item[Link state vector] The topology of the network and link costs are known to all nodes i.e.
+    all nodes have the same information. Each node computes its forwarding table by determining the
+    ``least costworthy'' (time, no. links used, congestion, etc.) path to all other nodes. One such 
+    algorithm is Dijkstra's Algorithm:
+    \begin{enumerate}
+        \item Let $N'=\{u\}$.
+        \item For all nodes $v\neq u$, if $v$ is adjacent to $u$ then set $D(v)=c(u,v)$ else $D(v)=\infty$.
+        \item Find $w\notin N'$ such that $D(w)\leq D(v)$ for all nodes $v\notin N'.$
+        \item Set $N'=N'\cup\{w\}$.
+        \item For all nodes $v\notin N'$ adjacent to $w$, set $D(v)=\min\{D(v), D(w)+c(w,v)\}$.
+        \item Repeat steps 3 to 5 untill all nodes are in $N'$.
+    \end{enumerate}
+    
+    \item[Distance vector] Each router knows only its physically connected neighbours and the link
+    costs to those neighbours. Costs are iteratively shared with neighbours and are recomputed when
+    new information is made available. If the cost to any other node has changed, then all neighbours 
+    are notified. One such algorithm uses the Bellman-Ford equation: let $d_x(y)$ be the cost of the
+    least-cost path from $x$ to $y$ and $N$ be the set of all neighbouring nodes to $x.$ Then, 
+    $d_x(y)=\min_{v\in N}\{c(x,v)+d_v(y)\}$.
+\end{description}
+
+\section*{Ch 6. Link Layer}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Error Detection and Correction}
+
+\begin{description}
+    \item[Single Parity Check] A single bit is added to end of the data in order to make the parity
+    \textbf{even}, that is, the number of ones is an even number.
+    
+    \item[Two-Dimensional Parity Check] Data is arranged in an array and parity check bits are added
+    to the end of each row and column in order to make every row and every column even parity.
+    
+    \item[Cyclic Redundancy Check (CRC)] $T=2^{n-k}D+R$ where $T$ is the $n$-bit codeword that $D$
+    maps to, $D$ is the $k$-bit message/data to send, and $R$ is the remainder of $(2^{n-k}D)/G$, 
+    where $G$ is some given generator. In order to check for errors on transmission, divide the received bits 
+    by $G$: if the remainder is $0$, then no error is detected. Often, $T,D,R$ and $G$ are written 
+    as polynomials where the $i^\text{th}$ bit is the coefficient of the $x^i$ term.
+    E.g. $1000011\mapsto x^6+x+1.$ 
+    
+    \item[Forward Error Correction (FEC)] Correction of detected errors usually requires retransmission,
+    which may be costly. FEC attempts to correct any detected errors itself. An error may be corrected
+    if there is a codeword $C$ of minimum distance from the received word $T$, where the distance is
+    defined to be the number of bits in which two words differ.
 \end{description}
 
 \end{document}
