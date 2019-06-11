@@ -317,6 +317,8 @@ Total delay at a node (router) is given by
     
 \end{description}
 
+\newpage
+
 \section*{Ch 2. Application Layer}
 \noindent
 \rule{\linewidth}{0.5mm}
@@ -545,7 +547,16 @@ Total delay at a node (router) is given by
     \item[Attacking DNS] Root and TLD servers may be inundated with traffic in order a denial of 
     service attack. Can also intercept queries from DNS servers and send bogus replies to them, which
     are usually cached.
+
+    \begin{figure}[H]
+        \includegraphics[scale=0.5]{images/dns_summary.jpg}
+        \centering
+        \caption{Summary of essential DNS concepts}
+    \end{figure}    
+    
 \end{description}
+
+\newpage
 
 \section*{Ch 3. Transport Layer}
 \noindent
@@ -806,6 +817,8 @@ Total delay at a node (router) is given by
     \end{description}
 \end{description}
 
+\newpage
+
 \section*{Ch 4. Network Layer: Data Plane}
 \noindent
 \rule{\linewidth}{0.5mm}
@@ -960,6 +973,8 @@ Total delay at a node (router) is given by
     \item[Tunneling] Not all routers are IPv6 compatible, so the IPv6 datagram is carried as the
     payload of a IPv4 datagram amongst IPv4 routers. 
 \end{description}
+
+\newpage
 
 \section*{Ch 5. Network Layer: Control Plane}
 \noindent
@@ -1135,6 +1150,8 @@ F & $\infty$ & $\infty$ & $3$ & $3$ & $3$ & \, \\
     $d_x(y)=\min_{v\in N}\{c(x,v)+d_v(y)\}$.
 \end{description}
 
+\newpage
+
 \section*{Ch 6. Link Layer}
 \noindent
 \rule{\linewidth}{0.5mm}
@@ -1222,5 +1239,73 @@ F & $\infty$ & $\infty$ & $3$ & $3$ & $3$ & \, \\
     
     
 \end{description}
+
+
+\section*{Ch 8. Security}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Security Goals}
+The following a desirable features of a secure communication link.
+\begin{description}
+    \item[Confidentiality] Only the sender and intended receiver should be able to understand
+        the contents of the transmitted message. Because eavesdroppers may intercept
+        the message, this necessarily requires that the message be somehow
+        encrypted so that an intercepted message cannot be understood by an interceptor.
+        This aspect of confidentiality is probably the most commonly perceived meaning of the term {\it secure communication}.
+    \item[Message integrity] We would like to assure any users that the content of their communication
+        is not altered, either maliciously or by accident, in transit. Extensions
+        to the checksumming techniques that we encountered in reliable transport and
+        data link protocols can be used to provide such message integrity.
+    \item[End-point authentication] Both the sender and receiver should be able to
+        confirm the identity of the other party involved in the communication—
+        to confirm that the other party is indeed who or what they claim to be.
+    \item[Operational security] Almost all organizations (companies, universities, and
+        so on) today have networks that are attached to the public Internet. These networks
+        therefore can potentially be compromised. Attackers can attempt
+        to deposit worms into the hosts in the network, obtain corporate secrets, map
+        the internal network configurations, and launch DoS attacks.
+\end{description}
+
+\subsection*{Caesar cipher}
+The Caesar cipher (not to be confused with {\it Caesar Salad}) is one of the earliest known and simplest ciphers. It is a type of substitution cipher in which each letter in the plaintext is 'shifted' a certain number of places down the alphabet. For example, with a shift of 1, A would be replaced by B, B would become C, and so on. For example the plain text message \texttt{“bob, i love you. alice”} becomes \texttt{“nkn, sgktc wky. mgsbc.”} when the following cipher is applied:
+\begin{align*}
+    \text{Plaintext letter:} \, & \quad \texttt{a b c d e f g h i j k l m n o p q r s t u v w x y z} \\
+    \text{Ciphertext letter:} \, & \quad \texttt{m n b v c x z a s d f g h j k l p o i u y t r e w q}
+\end{align*}
+
+\subsection*{Rail Fence Cipher}
+In the rail fence cipher, the plain text is written downwards and diagonally on successive "rails" of an imaginary fence, then moving up when the bottom rail is reached. When the top rail is reached, the message is written downwards again until the whole plaintext is written out. The message is then read off in rows. For example, if 3 "rails" and the message 'WE ARE DISCOVERED. FLEE AT ONCE' is used, the cipherer writes out
+\begin{lstlisting}
+    W . . . E . . . C . . . R . . . L . . . T . . . E
+    . E . R . D . S . O . E . E . F . E . A . O . C .
+    . . A . . . I . . . V . . . D . . . E . . . N . .
+\end{lstlisting}
+We then remove the spaces (.) and read left to right, top to bottom to get the ciphertext
+\begin{lstlisting}
+    WECRLTEERDSOEEFEAOCAIVDEN
+\end{lstlisting}
+As an example of solving this cupher we'll use a 3-rail fence to encode a new phrase and include spacing in between the words. Our ciphertext comes out as IA\_EZS\_ELYLK\_UZERLIPL. Note that our ciphertext has a total of 21 units (letters + spaces). This will be important later on as we try to decipher it.\\[1\baselineskip]
+To solve the cipher, you must know the height and cycle of the puzzle. The height is simply the number of fence rails used to create it. In this example, we said that 3 fence rails were used, so the height is 3. The height will always be higher than 2 and no more than the number of letters in the ciphertext (in this case 21) or else the phrase will not be properly encoded; the height can thus be discovered by process of elimination if not known.\\[1\baselineskip]
+To determine the puzzle width, which will tell us how many total units will be in each row, you must determine the "cycle" of letters. A "cycle" of letters runs from the top row, down through each subsequent row, and then up again, but stopping before reaching the top row again. (The next letter on the top row will actually begin the next cycle.) So a 2-rail puzzle has a "cycle" of 2 letters; a 3-rail puzzle has a "cycle" of 4 letters; a 4-rail puzzle has a "cycle" of 6 letters; etc. (See below.) The math equation for this is: "Cycle" = ([\# of rails] x 2) - 2 (since the top and bottom rows have half as many units per cycle as any middle row(s)).\\[1\baselineskip]
+Our 3-rail fence example has a "cycle" of 4 units. So divide the total units (letters + spaces) by the cycle number and round down to the next whole number. There are 21 units in the example, so our "base puzzle width" is 5 (21 / 4 = 5.25, which rounds down to 5). It is important to realize that there are 5 "full cycles" plus a "partial cycle" of 1 more letter (5 x 4 = 20 and 20 + 1 = 21 units). Therefore, the top row has 6 units in it (5 "full cycles" + the 1 extra letter that is starting off the 6th cycle all by itself). The middle row has 10 units (5 "full cycles" x 2 units for each cycle). The bottom row has 5 units (5 "full cycles" x 1 unit for each cycle since it is the bottom-most row).\\[1\baselineskip]
+Take the first 6 units from our ciphertext and write them across the top row, leaving much space between the units: {\bf IA\_EZS}\_ELYLK\_UZERLIPL
+\begin{lstlisting}
+    I . . . A . . . _ . . . E . . . Z . . . S
+\end{lstlisting}
+The middle row takes the next 10 units and adds 1 unit just after and 1 unit just before each unit in the top row: IA\_EZS{\bf \_ELYLK\_UZE}RLIPL
+\begin{lstlisting}
+    I . . . A . . . _ . . . E . . . Z . . . S
+    . _ . E . L . Y . L . K . _ . U . Z . E .
+\end{lstlisting}
+The bottom row gets the final 5 units written below and in between the pairs of units in the middle row: IA\_EZS\_ELYLK\_UZE{\bf RLIPL}.
+\begin{lstlisting}
+    I . . . A . . . _ . . . E . . . Z . . . S
+    . _ . E . L . Y . L . K . _ . U . Z . E .
+    . . R . . . L . . . I . . . P . . . L . .
+\end{lstlisting}
+Now just follow the down-up-down-up pattern to determine the original message: I\_REALLY\_LIKE\_PUZZLES!
+
 
 \end{document}
