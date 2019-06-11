@@ -22,7 +22,7 @@
 \documentclass{article}
 
 \input{structure.tex}
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath,amssymb,listings}
 
 \title{COMS3200: Revision} % Title of the document
 \author{Team Collusion}
@@ -461,8 +461,86 @@ Total delay at a node (router) is given by
         \item[MX] \texttt{value} is name of mailserver associated with \texttt{name}.
     \end{description}
     
-    \item[DNS format] A DNS message looks like
-    %TODO insert image
+    \item[DNS format] All DNS packets have the following structure:
+    \begin{lstlisting}
+        +---------------------+
+        | Header              |
+        +---------------------+
+        | Question            | Question for the name server
+        +---------------------+
+        | Answer              | Answers to the question
+        +---------------------+
+        | Authority           |
+        +---------------------+
+        | Additional          |
+        +---------------------+
+    \end{lstlisting}
+    
+    The header describes the type of packet and which fields are contained in the packet. Following
+    the header are a number of questions, answers, authority records, and additional records. For
+    this project, we will be ignoring the authority and additional fields - your client program must accept
+    packets with such fields, but must ignore them.
+    Note that a response for a single question may contain multiple answers, such as if an address
+    has multiple IP addresses, or if an address has a CNAME and an A record. Your client must process
+    the entire answer section and report on each one of these records.
+    
+    \item[DNS Headers]
+    DNS packets have a header that is shown below. Note that requests and replies follow the same header format.
+    \begin{lstlisting}
+                                    1  1  1  1  1  1
+      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    | ID                                            |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |QR|  Opcode   |AA|TC|RD|RA| Z      | RCODE     |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    | QDCOUNT                                       |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    | ANCOUNT                                       |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    | NSCOUNT                                       |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    | ARCOUNT                                       |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    \end{lstlisting}
+    where:
+    \begin{description}
+        \item[{\tt ID}] A 16 bit identifier assigned by the program that generates any kind of query. This identifier is copied the corresponding reply and can be used by the requester to match up replies to outstanding queries. You should always use 1337 for this field.
+        \item[{\tt QR}] A one bit field that specifies whether this message is a query (0), or a response (1).
+        \item[{\tt OPCODE}] A four bit field that specifies kind of query in this message.
+        \item[{\tt AA}] Authoritative Answer - this bit is only meaningful in responses, and specifies that the responding name server is an authority for the domain name in question section.
+        \item[{\tt RD}] Recursion Desired - this bit directs the name server to pursue the query recursively.
+        \item[{\tt RA}] Recursion Available - this be is set or cleared in a response, and denotes whether recursive query support is available in the name server. Recursive query support is optional.
+        \item[{\tt Z}] Reserved for future use (usually set to 0).
+        \item[{\tt RCODE}] Response code - this 4 bit field is set as part of responses.
+        \item[{\tt QDCOUNT}] An unsigned 16 bit integer specifying the number of entries in the question section.
+        \item[{\tt ANCOUNT}] An unsigned 16 bit integer specifying the number of resource records in the answer section.
+        \item[{\tt NSCOUNT}] An unsigned 16 bit integer specifying the number of resource records in the answer section.
+        \item[{\tt ARCOUNT}] An unsigned 16 bit integer specifying the number of resource records in the additional records section.
+    \end{description}
+    
+    \item[DNS Questions]
+    A DNS question has the format
+    \begin{lstlisting}
+                                    1  1  1  1  1  1
+      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                                               |
+    / QNAME                                         /
+    /                                               /
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    | QTYPE                                         |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    | QCLASS                                        |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    \end{lstlisting}
+    Where
+    
+    \begin{description}
+        \item[{\tt QNAME}] A domain name represented as a sequence of labels, where each label consists of a length octet followed by that number of octets. The domain name terminates with the zero length octet for the null label of the root.
+        \item[{\tt QTYPE}] A two octet code which specifies the type of the query.
+        \item[{\tt QCLASS}] A two octet code that specifies the class of the query.
+    \end{description}
     
     \item[Attacking DNS] Root and TLD servers may be inundated with traffic in order a denial of 
     service attack. Can also intercept queries from DNS servers and send bogus replies to them, which
@@ -508,6 +586,42 @@ Total delay at a node (router) is given by
     
     \item[Header] A typical UDP header looks like 
     %TODO include figure
+    \begin{lstlisting}
+ 0      7 8     15 16    23 24    31
++--------+--------+--------+--------+
+|     Source      |   Destination   |
+|      Port       |      Port       |
++--------+--------+--------+--------+
+|                 |                 |
+|     Length      |    Checksum     |
++--------+--------+--------+--------+
+    \end{lstlisting}
+    where 
+    \begin{description}
+        \item[Source Port] Identifies the sender's port, when used, and should be assumed to be the port
+        to reply to if needed. If not used, it should be zero.
+        \item[Destination Port] Identifies the receiver's port and is required.
+        \item[Length] Specifies the length in bytes of the UDP header and UDP data. The minimum length
+        is 8 bytes, the length of the header. The field size sets a theoretical limit of 65,535 bytes
+        (8 byte header + 65,527 bytes of data) for a UDP datagram. However the actual limit for the 
+        data length, which is imposed by the underlying IPv4 protocol, is 65,507 bytes 
+        (65,535 - 8 byte UDP header - 20 byte IP header).
+        \item[Checksum] The checksum field may be used for error-checking of the header and data.
+        This field is optional in IPv4, and mandatory in IPv6. The field carries all-zeros if unused.
+        It is calculated as the 16-bit one's complement of the one's complement sum of a pseudo header
+        of information from the IP header, the UDP header, and the data, padded with zero octets at the
+        end (if necessary) to make a multiple of two octets.
+        \begin{lstlisting}
+ 0      7 8     15 16    23 24    31
++--------+--------+--------+--------+
+|          source address           |
++--------+--------+--------+--------+
+|        destination address        |
++--------+--------+--------+--------+
+|  zero  |protocol|   UDP length    |
++--------+--------+--------+--------+
+        \end{lstlisting}
+    \end{description}
 \end{description}
 
 \subsection*{Reliable Data Transfer}
@@ -632,6 +746,64 @@ Total delay at a node (router) is given by
     
     \item[Header] A TCP header looks like
     %TODO figure of tcp header. Also explain scaling (e.g. window size)
+    \begin{lstlisting}
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          Source Port          |        Destination Port       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Sequence Number                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                     Acknowledgment Number                     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Offset|  Res. |     Flags     |             Window            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|            Checksum           |         Urgent Pointer        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Options                    |    Padding    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    \end{lstlisting}
+    with
+    \begin{description}
+        \item[Source Port] Identifies the sending port (16-bits)
+        \item[Destination Port] Identifies the receiving port (16-bits)
+        \item[Sequence Number] If the SYN flag is set (1), then this is the initial sequence number.
+        The sequence number of the actual first data byte and the acknowledged number in the
+        corresponding ACK are then this sequence number plus 1. If the SYN flag is clear (0), then this
+        is the accumulated sequence number of the first data byte of this segment for the current
+        session.
+        \item[Acknowledgement Number] If the ACK flag is set then the value of this field is the next
+        sequence number that the sender of the ACK is expecting. This acknowledges receipt of all prior
+        bytes (if any). The first ACK sent by each end acknowledges the other end's initial sequence
+        number itself, but no data.
+        \item[Offset] Specifies the size of the TCP header in 32-bit words. 
+        \item[Res.] Should be set to 0 (3bits).
+        \item[Flags] Contains 9 1bit flags: NS,CWR,ECE,URG,ACK,PSH,RST,SYN,FIN
+        \begin{itemize}
+            \item[ACK] Indicates that the Acknowledgment field is significant. All packets after the
+            initial SYN packet sent by the client should have this flag set.
+            \item[SYN] Synchronize sequence numbers. Only the first packet sent from each end should
+            have this flag set. Some other flags and fields change meaning based on this flag, and some
+            are only valid when it is set, and others when it is clear.
+            \item[FIN] Last packet from sender.
+        \end{itemize}
+        \item[Window Size] The size of the receive window, which specifies the number of window size
+        units (by default, bytes) (beyond the segment identified by the sequence number in the
+        acknowledgment field) that the sender of this segment is currently willing to receive.
+        \item[Checksum] The 16-bit checksum field is used for error-checking of the header, the Payload
+        and a Pseudo-Header. The Pseudo-Header consists of the Source IP Address, the Destination IP
+        Address, the protocol number for the TCP-Protocol (0x0006) and the length of the TCP-Headers
+        including Payload (in Bytes).
+        \begin{lstlisting}
++--------+--------+--------+--------+
+|           Source Address          |
++--------+--------+--------+--------+
+|         Destination Address       |
++--------+--------+--------+--------+
+|  zero  |  PTCL  |    TCP Length   |
++--------+--------+--------+--------+
+        \end{lstlisting}
+    \end{description}
 \end{description}
 
 \section*{Ch 4. Network Layer: Data Plane}
@@ -706,7 +878,47 @@ Total delay at a node (router) is given by
 
 \begin{description}
     \item[Header] A typical IP datagram looks like
-    % TODO: include header
+    \begin{lstlisting}
+ 0                   1                   2                   3   
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|Version|  IHL  |Type of Service|          Total Length         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Identification        |Flags|      Fragment Offset    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Time to Live |    Protocol   |         Header Checksum       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                       Source Address                          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Destination Address                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Options                    |    Padding    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    \end{lstlisting}
+    with
+    \begin{description}
+        \item[Version] Always 4 for IPv4.
+        \item[IHL] The number of 32-bit words. 
+        \item[Total Length] the entire packet size in bytes, including header and data. The minimum size
+        is 20 bytes (header without data) and the maximum is 65,535 bytes.
+        \item[Identification] Used for uniquely identifying the group of fragments of a single IP datagram
+        \item[Flags] Reserved (0),DF,MF. If the DF flag is set, and fragmentation is required to route
+        the packet, then the packet is dropped. For unfragmented packets, the MF flag is cleared. For
+        fragmented packets, all fragments except the last have the MF flag set. The last fragment has a
+        non-zero Fragment Offset field, differentiating it from an unfragmented packet.
+        \item[Fragmentaiton offset] Measured in units of eight-byte blocks (explained below).
+        \item[Time to Live (TTL)] It is specified in seconds, but time intervals less than 1 second are
+        rounded up to 1. In practice, the field has become a hop count—when the datagram arrives at a
+        router, the router decrements the TTL field by one.
+        \item[Protocol] Defines the protocol used in the data portion of the IP datagram.
+        \item[Header Checksum]  When a packet arrives at a router, the router calculates the checksum of
+        the header and compares it to the checksum field. If the values do not match, the router
+        discards the packet. The checksum field is the 16-bit one's complement of the one's complement
+        sum of all 16-bit words in the header. For purposes of computing the checksum, the value of the
+        checksum field is zero.
+        \item[Source Address] IPv4 address of the sender of the packet.
+        \item[Destination Address] IPv4 address of the receiver of the packet.
+    \end{description}
     
     \item[Fragmentation] Network links have a MTU (largest possible link-level frame). If a packet is
     larger than a links MTU, it must be fragmented. The fragflag is set to 1 and the offset in a 
@@ -781,6 +993,140 @@ Total delay at a node (router) is given by
         \item Repeat steps 3 to 5 untill all nodes are in $N'$.
     \end{enumerate}
     
+    \item[Dijkstra’s algorithm]
+Given the following graph suppose we would like to find the shortest distance between vertex {\bf A} and each of the other vertices
+
+\begin{figure}[H]
+    \includegraphics[scale=0.5]{images/COMS_review_dj.png}
+    \centering
+\end{figure}
+
+To start (iteration $1$) we assume the distance to any other vertex to be infinite and that the shortest distance to {\bf A} is $0$.
+
+\begin{center}
+ \begin{tabular}{| c || c |} 
+ \hline
+ \, & Iter $1$ \\ [0.5ex] 
+ \hline\hline
+A & $0$ \\ 
+ \hline
+B & $\infty$ \\
+ \hline
+C & $\infty$ \\
+ \hline
+D & $\infty$ \\
+ \hline
+E & $\infty$ \\
+ \hline
+F & $\infty$ \\
+ \hline
+\end{tabular}
+\end{center}
+
+With the minimum cost of {\bf A} added to our table we then consider the cost to all the neighbours of {\bf A}. We find that {\bf C} is our least expensive neighbour to {\bf C} with a cost of $1$, so the smallest cost to the vertex {\bf C} is updated and set as $1$. Costs for {\bf B} and {\bf D} that neighbour {\bf A} are also updated but not set as the shortest since only the shortest cost on any iteration is set as the shortest overall path to {\bf A}.
+
+\begin{center}
+ \begin{tabular}{| c || c | c |} 
+ \hline
+ \, & Iter $1$ & Iter $2$ \\ [0.5ex] 
+ \hline\hline
+A & $0$ & \, \\ 
+ \hline
+B & $\infty$ & $4$ \\
+ \hline
+C & $\infty$ & $1$ \\
+ \hline
+D & $\infty$ & $2$ \\
+ \hline
+E & $\infty$ & $\infty$ \\
+ \hline
+F & $\infty$ & $\infty$ \\
+ \hline
+\end{tabular}
+\end{center}
+
+Now that {\bf C} is added we check to see if route costs to {\bf A} are smaller. Indeed since {\bf E} and {\bf F} neighbour {\bf C} the new cost from {\bf E} and {\bf F} to {\bf A} is $5$ and $3$ respectively. On every iteration we check to see if the newly set lowest cost vertex will provide smaller route costs compared to the current route costs.
+
+\begin{center}
+ \begin{tabular}{| c || c | c | c |} 
+ \hline
+ \, & Iter $1$ & Iter $2$ & Iter $3$ \\ [0.5ex] 
+ \hline\hline
+A & $0$ & \, & \, \\ 
+ \hline
+B & $\infty$ & $4$ & $4$ \\
+ \hline
+C & $\infty$ & $1$ & \, \\
+ \hline
+D & $\infty$ & $2$ & $2$ \\
+ \hline
+E & $\infty$ & $\infty$ & $5$ \\
+ \hline
+F & $\infty$ & $\infty$ & $3$ \\
+ \hline
+\end{tabular}
+\end{center}
+
+\begin{center}
+ \begin{tabular}{| c || c | c | c | c |} 
+ \hline
+ \, & Iter $1$ & Iter $2$ & Iter $3$ & Iter $4$ \\ [0.5ex] 
+ \hline\hline
+A & $0$ & \, & \, & \, \\ 
+ \hline
+B & $\infty$ & $4$ & $4$ & $4$ \\
+ \hline
+C & $\infty$ & $1$ & \, & \, \\
+ \hline
+D & $\infty$ & $2$ & $2$ & \, \\
+ \hline
+E & $\infty$ & $\infty$ & $5$ & $3$ \\
+ \hline
+F & $\infty$ & $\infty$ & $3$ & $3$ \\
+ \hline
+\end{tabular}
+\end{center}
+
+\begin{center}
+ \begin{tabular}{| c || c | c | c | c | c |} 
+ \hline
+ \, & Iter $1$ & Iter $2$ & Iter $3$ & Iter $4$ & Iter $5$ \\ [0.5ex] 
+ \hline\hline
+A & $0$ & \, & \, & \, & \, \\ 
+ \hline
+B & $\infty$ & $4$ & $4$ & $4$ & $4$ \\
+ \hline
+C & $\infty$ & $1$ & \, & \, & \, \\
+ \hline
+D & $\infty$ & $2$ & $2$ & \, & \, \\
+ \hline
+E & $\infty$ & $\infty$ & $5$ & $3$ & \, \\
+ \hline
+F & $\infty$ & $\infty$ & $3$ & $3$ & $3$ \\
+ \hline
+\end{tabular}
+\end{center}
+
+\begin{center}
+ \begin{tabular}{| c || c | c | c | c | c | c |} 
+ \hline
+ \, & Iter $1$ & Iter $2$ & Iter $3$ & Iter $4$ & Iter $5$ & Iter $6$ \\ [0.5ex] 
+ \hline\hline
+A & $0$ & \, & \, & \, & \, & \, \\ 
+ \hline
+B & $\infty$ & $4$ & $4$ & $4$ & $4$ & $4$ \\
+ \hline
+C & $\infty$ & $1$ & \, & \, & \, & \, \\
+ \hline
+D & $\infty$ & $2$ & $2$ & \, & \, & \, \\
+ \hline
+E & $\infty$ & $\infty$ & $5$ & $3$ & \, & \, \\
+ \hline
+F & $\infty$ & $\infty$ & $3$ & $3$ & $3$ & \, \\
+ \hline
+\end{tabular}
+\end{center}
+    
     \item[Distance vector] Each router knows only its physically connected neighbours and the link
     costs to those neighbours. Costs are iteratively shared with neighbours and are recomputed when
     new information is made available. If the cost to any other node has changed, then all neighbours 
@@ -800,7 +1146,7 @@ Total delay at a node (router) is given by
     \item[Single Parity Check] A single bit is added to end of the data in order to make the parity
     \textbf{even}, that is, the number of ones is an even number.
     
-    \item[Two-Dimensional Parity Check] Data is arranged in an array and parity check bits are added
+    \item[Two-Dimensional Parity Check] Data is arranged in a 2D-array and parity check bits are added
     to the end of each row and column in order to make every row and every column even parity.
     
     \item[Cyclic Redundancy Check (CRC)] $T=2^{n-k}D+R$ where $T$ is the $n$-bit codeword that $D$
@@ -813,7 +1159,68 @@ Total delay at a node (router) is given by
     \item[Forward Error Correction (FEC)] Correction of detected errors usually requires retransmission,
     which may be costly. FEC attempts to correct any detected errors itself. An error may be corrected
     if there is a codeword $C$ of minimum distance from the received word $T$, where the distance is
-    defined to be the number of bits in which two words differ.
+    defined to be the number of bits in which two words differ (Hamming distance).
+\end{description}
+
+\subsection*{Multiple Access Protocols}
+
+\begin{description}
+    \item[Time division multiple access (TDMA)] Each station gets fixed length slot access to channel,
+    where the length of time is the time taken to transmit 1 whole packet. Unused slots go idle.
+    \item[Frequency division multiple access (FDMA)] Channel spectrum divided into frequency bands and 
+    each station is assigned a fixed frequency band. Unused transmission time in frequency bands go idle.
+    \item[Slotted ALOHA] When node obtains frame to transmit, transmits in next time slot. If no 
+    collision is detected, node can send new frame in next slot, otherwise the node transmits in the 
+    next slot with probability $p$ of success. Assuming there are $N$ nodes and each node transmits in a
+    slot with probability $p$, the probability any given node transmits successfully is $p(1-p)^{N-1}$.
+    Thus, the probability that \textit{any} node has success is $Np(1-p)^{N-1}$. Taking the limit as
+    $N\to\infty$, gives maximum efficiency of $\frac1e$.
+    \item[Unslotted ALOHA] As above but there is no time synchronization, so a node transmits as soon as
+    a frame arrives. The efficiency of this is $\frac1{2e}$.
+    \item[Carrier sense multiple access (CSMA)] Nodes listen to channel before transmitting. If it is idle,
+    it transmits the entire frame, otherwise transmission is delayed. If a collision occurs, the entire
+    frame and transmission time is wasted.
+    \item[CSMA/CD (collision detection)] When a collision is detected abort transmission. After aborting,
+    node enters \textbf{binary (exponential) backoff}: after $m^\text{th}$ collision, node chooses $K$
+    at random from $\{0,1,2,3,dots,2^m-1\}$ and then waits $512K$ bit times to try again. After $10$ or 
+    more collisions, $K$ chosen equally randomly from $\{0,1,2,3,\dots,1023\}$.
+    \item[Polling] Some ``master'' node invites ``slave'' node to transmit in turn.
+    \item[Token passing (round robin)] Token passed from node to node sequentially. Transmit only when
+    in possession of node.
+\end{description}
+
+\subsection*{LANs}
+
+\begin{description}
+    \item[MAC and ARP] MAC addresses used at link layer to send frame ``locally'' from one interface
+    to another physically-connected interface (same network, in IP address  sense), consisting of
+    48bits. ARP (address resolution protocol) is used to determine an interfaces MAC address, knowing
+    its IP address. Each node on LAN keeps an ARP table, which stores (MAC, IP) mappings.
+    \item[Routing to another LAN] Sender sends frame to gatway router MAC address but the intended
+    recipient's IP address. Router forwards packet, replacing the source MAC with its own and
+    destination MAC with that of the receiver (or intermediate router of necessary).
+    \item[Ethernet] Traditional topology of LAN was that of a \textbf{bus}, in which all nodes are in 
+    the same collision domain. Nowadays the \textbf{star} topology prevails, in which there is an active
+    \textbf{switch} in the center of the network. It is a connectionless and unreliable protocol: data
+    is only recovered if some higher layer rdt protocol is used (eg.g TCP).
+    \item[Ethernet frame] A typical Ethernet frame looks like 
+    
+    \begin{tabular}[h!]{c|c|c|c|c|c}
+    preamble & destination address & source address & type & data & CRC
+    \end{tabular}
+    
+    with
+    \begin{description}
+        \item[Preamble] 7 bytes of \texttt{10101010} followed by 1 byte of \texttt{10101011} for clock
+        synchronization.
+        \item[Dest Address] 48bit MAC address. If adapter receives frame with matching or broadcast
+        address, passes data to network layer protocol, otherwise the frame is dropped.
+        \item[Source Address] 48bit MAC address of sender.
+        \item[Data] The payload of a packet.
+        \item[CRC] Cyclic redundancy check.
+    \end{description}
+    
+    
 \end{description}
 
 \end{document}
