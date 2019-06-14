@@ -815,6 +815,13 @@ Total delay at a node (router) is given by
 +--------+--------+--------+--------+
         \end{lstlisting}
     \end{description}
+    
+    \item[Flow control] The receiver controls how much data the sender sends so as to not overflow the 
+    buffer on the receiving end. The TCP window size if the primary tool for doing this.
+    
+    \item[Congestion control] The sender attempts to limit the amount of data it sends into the network
+    so that the performance of the network does not significantly drop. Acknowledgments (or lack thereof)
+    are used by sender to infer network conditions between the sender and the receiver.
 \end{description}
 
 \newpage
@@ -1009,6 +1016,313 @@ Total delay at a node (router) is given by
     \end{enumerate}
     
     \item[Dijkstra’s algorithm]
+        See example question
+    
+    \item[Distance vector] Each router knows only its physically connected neighbours and the link
+    costs to those neighbours. Costs are iteratively shared with neighbours and are recomputed when
+    new information is made available. If the cost to any other node has changed, then all neighbours 
+    are notified. One such algorithm uses the Bellman-Ford equation: let $d_x(y)$ be the cost of the
+    least-cost path from $x$ to $y$ and $N$ be the set of all neighbouring nodes to $x.$ Then, 
+    $d_x(y)=\min_{v\in N}\{c(x,v)+d_v(y)\}$.
+\end{description}
+
+\newpage
+
+\section*{Ch 6. Link Layer}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Error Detection and Correction}
+
+\begin{description}
+    \item[Single Parity Check] A single bit is added to end of the data in order to make the parity
+    \textbf{even}, that is, the number of ones is an even number.
+    
+    \item[Two-Dimensional Parity Check] Data is arranged in a 2D-array and parity check bits are added
+    to the end of each row and column in order to make every row and every column even parity.
+    
+    \item[Cyclic Redundancy Check (CRC)] $T=2^{n-k}D+R$ where $T$ is the $n$-bit codeword that $D$
+    maps to, $D$ is the $k$-bit message/data to send, and $R$ is the remainder of $(2^{n-k}D)/G$, 
+    where $G$ is some given generator. In order to check for errors on transmission, divide the received bits 
+    by $G$: if the remainder is $0$, then no error is detected. Often, $T,D,R$ and $G$ are written 
+    as polynomials where the $i^\text{th}$ bit is the coefficient of the $x^i$ term.
+    E.g. $1000011\mapsto x^6+x+1.$ 
+    
+    \item[Forward Error Correction (FEC)] Correction of detected errors usually requires retransmission,
+    which may be costly. FEC attempts to correct any detected errors itself. An error may be corrected
+    if there is a codeword $C$ of minimum distance from the received word $T$, where the distance is
+    defined to be the number of bits in which two words differ (Hamming distance).
+\end{description}
+
+\subsection*{Multiple Access Protocols}
+
+\begin{description}
+    \item[Time division multiple access (TDMA)] Each station gets fixed length slot access to channel,
+    where the length of time is the time taken to transmit 1 whole packet. Unused slots go idle.
+    \item[Frequency division multiple access (FDMA)] Channel spectrum divided into frequency bands and 
+    each station is assigned a fixed frequency band. Unused transmission time in frequency bands go idle.
+    \item[Slotted ALOHA] When node obtains frame to transmit, transmits in next time slot. If no 
+    collision is detected, node can send new frame in next slot, otherwise the node transmits in the 
+    next slot with probability $p$ of success. Assuming there are $N$ nodes and each node transmits in a
+    slot with probability $p$, the probability any given node transmits successfully is $p(1-p)^{N-1}$.
+    Thus, the probability that \textit{any} node has success is $Np(1-p)^{N-1}$. Taking the limit as
+    $N\to\infty$, gives maximum efficiency of $\frac1e$.
+    \item[Unslotted ALOHA] As above but there is no time synchronization, so a node transmits as soon as
+    a frame arrives. The efficiency of this is $\frac1{2e}$.
+    \item[Carrier sense multiple access (CSMA)] Nodes listen to channel before transmitting. If it is idle,
+    it transmits the entire frame, otherwise transmission is delayed. If a collision occurs, the entire
+    frame and transmission time is wasted.
+    \item[CSMA/CD (collision detection)] When a collision is detected abort transmission. After aborting,
+    node enters \textbf{binary (exponential) backoff}: after $m^\text{th}$ collision, node chooses $K$
+    at random from $\{0,1,2,3,dots,2^m-1\}$ and then waits $512K$ bit times to try again. After $10$ or 
+    more collisions, $K$ chosen equally randomly from $\{0,1,2,3,\dots,1023\}$.
+    \item[Polling] Some ``master'' node invites ``slave'' node to transmit in turn.
+    \item[Token passing (round robin)] Token passed from node to node sequentially. Transmit only when
+    in possession of node.
+\end{description}
+
+\subsection*{LANs}
+
+\begin{description}
+    \item[MAC and ARP] MAC addresses used at link layer to send frame ``locally'' from one interface
+    to another physically-connected interface (same network, in IP address  sense), consisting of
+    48bits. ARP (address resolution protocol) is used to determine an interfaces MAC address, knowing
+    its IP address. Each node on LAN keeps an ARP table, which stores (MAC, IP) mappings.
+    \item[Routing to another LAN] Sender sends frame to gatway router MAC address but the intended
+    recipient's IP address. Router forwards packet, replacing the source MAC with its own and
+    destination MAC with that of the receiver (or intermediate router of necessary).
+    \item[Ethernet] Traditional topology of LAN was that of a \textbf{bus}, in which all nodes are in 
+    the same collision domain. Nowadays the \textbf{star} topology prevails, in which there is an active
+    \textbf{switch} in the center of the network. It is a connectionless and unreliable protocol: data
+    is only recovered if some higher layer rdt protocol is used (eg.g TCP).
+    \item[Ethernet frame] A typical Ethernet frame looks like 
+    
+    \begin{tabular}[h!]{c|c|c|c|c|c}
+    preamble & destination address & source address & type & data & CRC
+    \end{tabular}
+    
+    with
+    \begin{description}
+        \item[Preamble] 7 bytes of \texttt{10101010} followed by 1 byte of \texttt{10101011} for clock
+        synchronization.
+        \item[Dest Address] 48bit MAC address. If adapter receives frame with matching or broadcast
+        address, passes data to network layer protocol, otherwise the frame is dropped.
+        \item[Type] 16bits specifiying the type of frame (Ethernet II or IEEE 802.3)
+        \item[Source Address] 48bit MAC address of sender.
+        \item[Data] The payload of a packet.
+        \item[CRC] Cyclic redundancy check.
+    \end{description}
+    
+    \item[Ethernet switch] Store and forward ethernet frames. Examines the incoming frames' MAC address and
+    selectively forwards frame to one or more outgoing links. Uses CSMA/CD to access the segment. Hosts 
+    are unaware of of the presence of switches. Switches learn where to send frames dynamically:
+    \begin{enumerate}
+        \item Record incoming link and MAC address of sending host
+        \item Index switch table using MAC destination address
+        \item If entry found, forward frame to interface indicated by entry (unless entry is incoming link
+        in which case drop the frame) else flood on all other interfaces.
+    \end{enumerate}
+    
+    \item[VLAN] Switch ports are grouped so that a single physical switch can act as multiple virtual 
+    switches. Ports can be dynamically be assigned among VLANs. Forwarding between VLANs is done via 
+    routing, just as it is with normal LANs/separate switches. VLANs spanning multiple switches must have
+    a \textbf{trunk port}, which carries frames in the same VLAN between physical switches. Such frames
+    must carry VLAN information, so must use 802.1q protocol. Frames look like
+    
+    \begin{tabular}{c|c|c|c|c|c|c|c}
+    preamble & destination address & source address & tag protocol id & tag control info & type & data & CRC
+    \end{tabular}
+    
+    with changes
+    \begin{description}
+        \item[Tag protocol identifier] A 16-bit field set to a value of 0x8100 in order to identify the
+        frame as an IEEE 802.1Q-tagged frame. This field is located at the same position as the EtherType
+        field in untagged frames, and is thus used to distinguish the frame from untagged frames.
+        \item[Tag control information] 16bits containing the following:
+        \begin{description}
+            \item[Priority code point (PCP)] 3bits which refer to the IEEE 802.1p
+            class of service and maps to the frame priority level. Different PCP values can be used to
+            prioritize different classes of traffic
+            \item[Drop eligible indicator (DEI)] 1-bit (formerly CFI) which may be used separately or in
+            conjunction with PCP to indicate frames eligible to be dropped in the presence of congestion.
+            \item[VLAN identifier (VID)] 12-bits specifying the VLAN to which the frame belongs. The
+            hexadecimal values of 0x000 and 0xFFF are reserved. All other values may be used as VLAN
+            identifiers, allowing up to 4,094 VLANs. The reserved value 0x000 indicates that the frame does
+            not carry a VLAN ID; in this case, the 802.1Q tag specifies only a priority (in PCP and DEI
+            fields) and is referred to as a priority tag. On bridges, VID 0x001 (the default VLAN ID) is
+            often reserved for a network management VLAN; this is vendor-specific. The VID value 0xFFF is
+            reserved for implementation use; it must not be configured or transmitted. 0xFFF can be used to
+            indicate a wildcard match in management operations or filtering database entries.
+        \end{description}
+    \end{description}
+\end{description}
+
+\subsection*{Mutliprotocol lable switching (MPLS)}
+
+\begin{description}
+    \item[Initial goal] High-speed IP forwarding using a fixed length label instead of the IP address.
+    Borrows ideas from virtual circuiting approach.
+    
+    \item[MPLS capable routers] Forwards packets based only on MPLS label value, however the label value 
+    can depend on other information, such as the source address (this is known as traffic engineering).
+    This causes packets to the same destination to take different routes. Can also pre-compute backup
+    paths in case of link failure for fast re-routing. 
+\end{description}
+
+\subsection*{A day in the life of a web request}
+
+\begin{description}
+    \item[Connect to internet] DHCP used to get IP address of self, first-hop router and DNS server.
+    \item[Gateway Router] Use ARP to get MAC address of first-hop router.
+    \item[Get IP address of web server] IP datagram containing DNS request forwarded via LAN to first-hop 
+    router. Forwarded over internet to DNS server, which replies with IP addr of web server.
+    \item[Connect to web server] Open TCP socket to web server and commence 3-way handshake.
+    \item[Request web page] Send HTTP request to web server over HTTP, which sends back an HTTP response.
+\end{description}
+
+\newpage
+
+\section*{Ch 8. Security}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Security Goals}
+The following a desirable features of a secure communication link.
+\begin{description}
+    \item[Confidentiality] Only the sender and intended receiver should be able to understand
+        the contents of the transmitted message. Because eavesdroppers may intercept
+        the message, this necessarily requires that the message be somehow
+        encrypted so that an intercepted message cannot be understood by an interceptor.
+        This aspect of confidentiality is probably the most commonly perceived meaning of the term {\it secure communication}.
+    \item[Message integrity] We would like to assure any users that the content of their communication
+        is not altered, either maliciously or by accident, in transit. Extensions
+        to the checksumming techniques that we encountered in reliable transport and
+        data link protocols can be used to provide such message integrity.
+    \item[End-point authentication] Both the sender and receiver should be able to
+        confirm the identity of the other party involved in the communication—
+        to confirm that the other party is indeed who or what they claim to be.
+    \item[Operational security] Almost all organizations (companies, universities, and
+        so on) today have networks that are attached to the public Internet. These networks
+        therefore can potentially be compromised. Attackers can attempt
+        to deposit worms into the hosts in the network, obtain corporate secrets, map
+        the internal network configurations, and launch DoS attacks.
+\end{description}
+
+\subsection*{Caesar cipher}
+The Caesar cipher (not to be confused with {\it Caesar Salad}) is one of the earliest known and simplest ciphers. It is a type of substitution cipher in which each letter in the plaintext is 'shifted' a certain number of places down the alphabet. For example, with a shift of 1, A would be replaced by B, B would become C, and so on. For example the plain text message \texttt{“bob, i love you. alice”} becomes \texttt{“nkn, sgktc wky. mgsbc.”} when the following cipher is applied:
+\begin{align*}
+    \text{Plaintext letter:} \, & \quad \texttt{a b c d e f g h i j k l m n o p q r s t u v w x y z} \\
+    \text{Ciphertext letter:} \, & \quad \texttt{m n b v c x z a s d f g h j k l p o i u y t r e w q}
+\end{align*}
+
+\subsection*{Rail Fence Cipher}
+In the rail fence cipher, the plain text is written downwards and diagonally on successive "rails" of an imaginary fence, then moving up when the bottom rail is reached. When the top rail is reached, the message is written downwards again until the whole plaintext is written out. The message is then read off in rows. For example, if 3 "rails" and the message 'WE ARE DISCOVERED. FLEE AT ONCE' is used, the cipherer writes out
+\begin{lstlisting}
+    W . . . E . . . C . . . R . . . L . . . T . . . E
+    . E . R . D . S . O . E . E . F . E . A . O . C .
+    . . A . . . I . . . V . . . D . . . E . . . N . .
+\end{lstlisting}
+We then remove the spaces (.) and read left to right, top to bottom to get the ciphertext
+\begin{lstlisting}
+    WECRLTEERDSOEEFEAOCAIVDEN
+\end{lstlisting}
+As an example of solving this cupher we'll use a 3-rail fence to encode a new phrase and include spacing in between the words. Our ciphertext comes out as IA\_EZS\_ELYLK\_UZERLIPL. Note that our ciphertext has a total of 21 units (letters + spaces). This will be important later on as we try to decipher it.\\[1\baselineskip]
+To solve the cipher, you must know the height and cycle of the puzzle. The height is simply the number of fence rails used to create it. In this example, we said that 3 fence rails were used, so the height is 3. The height will always be higher than 2 and no more than the number of letters in the ciphertext (in this case 21) or else the phrase will not be properly encoded; the height can thus be discovered by process of elimination if not known.\\[1\baselineskip]
+To determine the puzzle width, which will tell us how many total units will be in each row, you must determine the "cycle" of letters. A "cycle" of letters runs from the top row, down through each subsequent row, and then up again, but stopping before reaching the top row again. (The next letter on the top row will actually begin the next cycle.) So a 2-rail puzzle has a "cycle" of 2 letters; a 3-rail puzzle has a "cycle" of 4 letters; a 4-rail puzzle has a "cycle" of 6 letters; etc. (See below.) The math equation for this is: "Cycle" = ([\# of rails] x 2) - 2 (since the top and bottom rows have half as many units per cycle as any middle row(s)).\\[1\baselineskip]
+Our 3-rail fence example has a "cycle" of 4 units. So divide the total units (letters + spaces) by the cycle number and round down to the next whole number. There are 21 units in the example, so our "base puzzle width" is 5 (21 / 4 = 5.25, which rounds down to 5). It is important to realize that there are 5 "full cycles" plus a "partial cycle" of 1 more letter (5 x 4 = 20 and 20 + 1 = 21 units). Therefore, the top row has 6 units in it (5 "full cycles" + the 1 extra letter that is starting off the 6th cycle all by itself). The middle row has 10 units (5 "full cycles" x 2 units for each cycle). The bottom row has 5 units (5 "full cycles" x 1 unit for each cycle since it is the bottom-most row).\\[1\baselineskip]
+Take the first 6 units from our ciphertext and write them across the top row, leaving much space between the units: {\bf IA\_EZS}\_ELYLK\_UZERLIPL
+\begin{lstlisting}
+    I . . . A . . . _ . . . E . . . Z . . . S
+\end{lstlisting}
+The middle row takes the next 10 units and adds 1 unit just after and 1 unit just before each unit in the top row: IA\_EZS{\bf \_ELYLK\_UZE}RLIPL
+\begin{lstlisting}
+    I . . . A . . . _ . . . E . . . Z . . . S
+    . _ . E . L . Y . L . K . _ . U . Z . E .
+\end{lstlisting}
+The bottom row gets the final 5 units written below and in between the pairs of units in the middle row: IA\_EZS\_ELYLK\_UZE{\bf RLIPL}.
+\begin{lstlisting}
+    I . . . A . . . _ . . . E . . . Z . . . S
+    . _ . E . L . Y . L . K . _ . U . Z . E .
+    . . R . . . L . . . I . . . P . . . L . .
+\end{lstlisting}
+Now just follow the down-up-down-up pattern to determine the original message: I\_REALLY\_LIKE\_PUZZLES!
+
+\subsection*{Firewalls}
+A firewall is a combination of hardware and software that isolates an organization’s
+internal network from the Internet at large, allowing some packets to pass and blocking
+others. A firewall allows a network administrator to control access between the
+outside world and resources within the administered network by managing the traffic
+flow to and from these resources. A firewall has three goals:
+\begin{description}
+    \item[All traffic passes through the firewall] A firewall, sits squarely at the boundary between the administered network and the rest of the Internet. While large organizations may use multiple levels of firewalls or distributed firewalls, locating a firewall at a single access point to the network makes it easier to manage and enforce a security-access policy.
+    \item[Only authorized traffic, will be allowed to pass] With all traffic entering and leaving the       institutional network passing through the firewall, the firewall can restrict access to authorized      traffic.
+    \item[Immune to penetration (if you know what I'm talking about)] The firewall itself is a device       connected to the network. If not designed or installed properly, it can be compromised, in which case it provides only a false sense of security
+\end{description}
+
+\subsection*{Intrusion Detection System}
+An Intrusion Detection System is a device that generates alerts when it observes potentially malicious traffic. An IDS can be used to detect a wide range of attacks, including network mapping (emanating, for example, from nmap), port scans, TCP stack scans, DoS bandwidth-flooding attacks, worms and viruses, OS vulnerability attacks, and application vulnerability attacks (honestly I have no idea what half of these mean, I just found them in the text book).\\[1\baselineskip]
+IDS systems are broadly classified as either {\bf signature-based} systems or
+{\bf anomaly-based} systems. A signature-based IDS maintains an extensive database
+of attack signatures. Each signature is a set of rules pertaining to an intrusion activity.
+A signature may simply be a list of characteristics about a single packet (e.g.,
+source and destination port numbers, protocol type, and a specific string of bits in
+the packet payload), or may relate to a series of packets. The signatures are normally
+created by skilled network security engineers who research known attacks.
+An organization’s network administrator can customize the signatures or add its
+own to the database.\\[1\baselineskip]
+Operationally, a signature-based IDS sniffs every packet passing by it, comparing
+each sniffed packet with the signatures in its database. If a packet (or series of
+packets) matches a signature in the database, the IDS generates an alert. The alert
+could be sent to the network administrator in an e-mail message, could be sent to the
+network management system, or could simply be logged for future inspection.
+Signature-based IDS systems, although widely deployed, have a number of limitations.
+Most importantly, they require previous knowledge of the attack to generate
+an accurate signature. In other words, a signature-based IDS is completely blind to
+new attacks that have yet to be recorded. Another disadvantage is that even if a signature
+is matched, it may not be the result of an attack, so that a false alarm is generated.
+Finally, because every packet must be compared with an extensive collection of
+signatures, the IDS can become overwhelmed with processing and actually fail to
+detect many malicious packets.\\[1\baselineskip]
+An anomaly-based IDS creates a traffic profile as it observes traffic in normal
+operation. It then looks for packet streams that are statistically unusual, for example,
+an inordinate percentage of ICMP packets or a sudden exponential growth in
+port scans and ping sweeps. The great thing about anomaly-based IDS systems is
+that they don’t rely on previous knowledge about existing attacks—that is, they can
+potentially detect new, undocumented attacks. On the other hand, it is an extremely
+challenging problem to distinguish between normal traffic and statistically unusual
+traffic. To date, most IDS deployments are primarily signature-based, although
+some include some anomaly-based features.
+
+\section*{Example Questions}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{Application messages}
+Consider the following string of ASCII characters (below) that were captured by Wireshark when the browser sent an HTTP XXX message (i.e., this is the actual content of an HTTP XXX message).
+\begin{lstlisting}
+GET /index.html HTTP/1.1\r\n
+Host: www-net.cs.umass.edu\r\n
+User-Agent: Firefox/3.6.10\r\n
+Accept: text/html,application/xhtml+xml\r\n
+Accept-Language: en-us,en;q=0.5\r\n
+Accept-Encoding: gzip,deflate\r\n
+Accept-Charset: ISO-8859-1,utf-8;q=0.7\r\n
+Keep-Alive: timeout=5, max=1000\r\n
+Connection: keep-alive\r\n
+\r\n
+\end{lstlisting}
+The characters \texttt{\textbackslash r\textbackslash n} are carriage return and line-feed characters. Answer the following questions.
+
+\begin{enumerate}
+    \item {\it What is the user preference on the “accept-language”?} English, as shown by the \texttt{Accept -Language} field.
+    \item {\it Does the server want to bother with persistent connection or not? Why? Or Why not?} Yes, we can see that the server would like to maintain a connection in the \texttt{Connection} field.
+    \item {\it Does the browser deal with multiple request/response transaction per connection or not?} No since the connections are kept alive.
+\end{enumerate}
+
+\subsection*{Dijkstra's Algorithm}
 Given the following graph suppose we would like to find the shortest distance between vertex {\bf A} and each of the other vertices
 
 \begin{figure}[H]
@@ -1141,171 +1455,187 @@ F & $\infty$ & $\infty$ & $3$ & $3$ & $3$ & \, \\
  \hline
 \end{tabular}
 \end{center}
-    
-    \item[Distance vector] Each router knows only its physically connected neighbours and the link
-    costs to those neighbours. Costs are iteratively shared with neighbours and are recomputed when
-    new information is made available. If the cost to any other node has changed, then all neighbours 
-    are notified. One such algorithm uses the Bellman-Ford equation: let $d_x(y)$ be the cost of the
-    least-cost path from $x$ to $y$ and $N$ be the set of all neighbouring nodes to $x.$ Then, 
-    $d_x(y)=\min_{v\in N}\{c(x,v)+d_v(y)\}$.
-\end{description}
 
-\newpage
 
-\section*{Ch 6. Link Layer}
-\noindent
-\rule{\linewidth}{0.5mm}
-\noindent
-
-\subsection*{Error Detection and Correction}
-
-\begin{description}
-    \item[Single Parity Check] A single bit is added to end of the data in order to make the parity
-    \textbf{even}, that is, the number of ones is an even number.
-    
-    \item[Two-Dimensional Parity Check] Data is arranged in a 2D-array and parity check bits are added
-    to the end of each row and column in order to make every row and every column even parity.
-    
-    \item[Cyclic Redundancy Check (CRC)] $T=2^{n-k}D+R$ where $T$ is the $n$-bit codeword that $D$
-    maps to, $D$ is the $k$-bit message/data to send, and $R$ is the remainder of $(2^{n-k}D)/G$, 
-    where $G$ is some given generator. In order to check for errors on transmission, divide the received bits 
-    by $G$: if the remainder is $0$, then no error is detected. Often, $T,D,R$ and $G$ are written 
-    as polynomials where the $i^\text{th}$ bit is the coefficient of the $x^i$ term.
-    E.g. $1000011\mapsto x^6+x+1.$ 
-    
-    \item[Forward Error Correction (FEC)] Correction of detected errors usually requires retransmission,
-    which may be costly. FEC attempts to correct any detected errors itself. An error may be corrected
-    if there is a codeword $C$ of minimum distance from the received word $T$, where the distance is
-    defined to be the number of bits in which two words differ (Hamming distance).
-\end{description}
-
-\subsection*{Multiple Access Protocols}
-
-\begin{description}
-    \item[Time division multiple access (TDMA)] Each station gets fixed length slot access to channel,
-    where the length of time is the time taken to transmit 1 whole packet. Unused slots go idle.
-    \item[Frequency division multiple access (FDMA)] Channel spectrum divided into frequency bands and 
-    each station is assigned a fixed frequency band. Unused transmission time in frequency bands go idle.
-    \item[Slotted ALOHA] When node obtains frame to transmit, transmits in next time slot. If no 
-    collision is detected, node can send new frame in next slot, otherwise the node transmits in the 
-    next slot with probability $p$ of success. Assuming there are $N$ nodes and each node transmits in a
-    slot with probability $p$, the probability any given node transmits successfully is $p(1-p)^{N-1}$.
-    Thus, the probability that \textit{any} node has success is $Np(1-p)^{N-1}$. Taking the limit as
-    $N\to\infty$, gives maximum efficiency of $\frac1e$.
-    \item[Unslotted ALOHA] As above but there is no time synchronization, so a node transmits as soon as
-    a frame arrives. The efficiency of this is $\frac1{2e}$.
-    \item[Carrier sense multiple access (CSMA)] Nodes listen to channel before transmitting. If it is idle,
-    it transmits the entire frame, otherwise transmission is delayed. If a collision occurs, the entire
-    frame and transmission time is wasted.
-    \item[CSMA/CD (collision detection)] When a collision is detected abort transmission. After aborting,
-    node enters \textbf{binary (exponential) backoff}: after $m^\text{th}$ collision, node chooses $K$
-    at random from $\{0,1,2,3,dots,2^m-1\}$ and then waits $512K$ bit times to try again. After $10$ or 
-    more collisions, $K$ chosen equally randomly from $\{0,1,2,3,\dots,1023\}$.
-    \item[Polling] Some ``master'' node invites ``slave'' node to transmit in turn.
-    \item[Token passing (round robin)] Token passed from node to node sequentially. Transmit only when
-    in possession of node.
-\end{description}
-
-\subsection*{LANs}
-
-\begin{description}
-    \item[MAC and ARP] MAC addresses used at link layer to send frame ``locally'' from one interface
-    to another physically-connected interface (same network, in IP address  sense), consisting of
-    48bits. ARP (address resolution protocol) is used to determine an interfaces MAC address, knowing
-    its IP address. Each node on LAN keeps an ARP table, which stores (MAC, IP) mappings.
-    \item[Routing to another LAN] Sender sends frame to gatway router MAC address but the intended
-    recipient's IP address. Router forwards packet, replacing the source MAC with its own and
-    destination MAC with that of the receiver (or intermediate router of necessary).
-    \item[Ethernet] Traditional topology of LAN was that of a \textbf{bus}, in which all nodes are in 
-    the same collision domain. Nowadays the \textbf{star} topology prevails, in which there is an active
-    \textbf{switch} in the center of the network. It is a connectionless and unreliable protocol: data
-    is only recovered if some higher layer rdt protocol is used (eg.g TCP).
-    \item[Ethernet frame] A typical Ethernet frame looks like 
-    
-    \begin{tabular}[h!]{c|c|c|c|c|c}
-    preamble & destination address & source address & type & data & CRC
+\subsection*{Bellman-Ford algorithm}
+Given the following graph suppose we would like to find the shortest distance between vertex {\bf A} and each of the other vertices using the Bellman-Ford algorithm
+\begin{figure}[H]
+    \includegraphics[scale=0.5]{images/COMS_BF_alg.png}
+    \centering
+\end{figure}
+Initially each of the routing tables for our nodes will only display the cost from that node to each of it's neighbours with all other costs assumed to be $\infty$
+\begin{figure}[!htb]
+   \begin{minipage}{0.3\textwidth}
+    %   X-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & 0 & 2 & 7 \\
+        $y$ & $\infty$ & $\infty$ & $\infty$ \\
+        $z$ & $\infty$ & $\infty$ & $\infty$ \\
     \end{tabular}
-    
-    with
-    \begin{description}
-        \item[Preamble] 7 bytes of \texttt{10101010} followed by 1 byte of \texttt{10101011} for clock
-        synchronization.
-        \item[Dest Address] 48bit MAC address. If adapter receives frame with matching or broadcast
-        address, passes data to network layer protocol, otherwise the frame is dropped.
-        \item[Source Address] 48bit MAC address of sender.
-        \item[Data] The payload of a packet.
-        \item[CRC] Cyclic redundancy check.
-    \end{description}
-    
-    
-\end{description}
-
-
-\section*{Ch 8. Security}
-\noindent
-\rule{\linewidth}{0.5mm}
-\noindent
-
-\subsection*{Security Goals}
-The following a desirable features of a secure communication link.
-\begin{description}
-    \item[Confidentiality] Only the sender and intended receiver should be able to understand
-        the contents of the transmitted message. Because eavesdroppers may intercept
-        the message, this necessarily requires that the message be somehow
-        encrypted so that an intercepted message cannot be understood by an interceptor.
-        This aspect of confidentiality is probably the most commonly perceived meaning of the term {\it secure communication}.
-    \item[Message integrity] We would like to assure any users that the content of their communication
-        is not altered, either maliciously or by accident, in transit. Extensions
-        to the checksumming techniques that we encountered in reliable transport and
-        data link protocols can be used to provide such message integrity.
-    \item[End-point authentication] Both the sender and receiver should be able to
-        confirm the identity of the other party involved in the communication—
-        to confirm that the other party is indeed who or what they claim to be.
-    \item[Operational security] Almost all organizations (companies, universities, and
-        so on) today have networks that are attached to the public Internet. These networks
-        therefore can potentially be compromised. Attackers can attempt
-        to deposit worms into the hosts in the network, obtain corporate secrets, map
-        the internal network configurations, and launch DoS attacks.
-\end{description}
-
-\subsection*{Caesar cipher}
-The Caesar cipher (not to be confused with {\it Caesar Salad}) is one of the earliest known and simplest ciphers. It is a type of substitution cipher in which each letter in the plaintext is 'shifted' a certain number of places down the alphabet. For example, with a shift of 1, A would be replaced by B, B would become C, and so on. For example the plain text message \texttt{“bob, i love you. alice”} becomes \texttt{“nkn, sgktc wky. mgsbc.”} when the following cipher is applied:
+    \caption*{Node-X table}
+   \end{minipage}
+   \begin{minipage}{0.3\textwidth}
+    %   Y-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & $\infty$ & $\infty$ & $\infty$ \\
+        $y$ & $2$ & $0$ & $1$ \\
+        $z$ & $\infty$ & $\infty$ & $\infty$ \\
+    \end{tabular}
+    \caption*{Node-Y table}
+   \end{minipage}
+   \begin{minipage}{0.3\textwidth}
+    %   Z-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & $\infty$ & $\infty$ & $\infty$ \\
+        $y$ & $\infty$ & $\infty$ & $\infty$ \\
+        $z$ & $7$ & $1$ & $0$ \\
+    \end{tabular}
+    \caption*{Node-Z table}
+   \end{minipage}
+\end{figure}
+Each of these nodes then start sharing their distance vector (for example node $x$ will share the distance vector $\left( 0,2,7 \right)$) to each of the other neighbouring nodes. Once the distance vectors have been shared each of the nodes can then start updating their node tables using the Bellman-Ford equation:
+\[
+    D_{x} = \text{min}_{v} \left\{ c(x,v) + D_{v}(y) \right\}
+\]
+where $x$ is the starting node and $v$ are each of the nodes neighbouring $v$. In this case $x$ will compute it's new distance to $y$ and $z$ using the distance given by nodes $y$ and $z$. For all other rows it will simply replace these values using the distance vectors from the other nodes. The new distance vector for $x$ is calculated to be
 \begin{align*}
-    \text{Plaintext letter:} \, & \quad \texttt{a b c d e f g h i j k l m n o p q r s t u v w x y z} \\
-    \text{Ciphertext letter:} \, & \quad \texttt{m n b v c x z a s d f g h j k l p o i u y t r e w q}
+    D_{x} (x) &= 0 \\
+    D_{x} (y) &= \text{min} \left\{ c(x,y) + D_{y}(y), c(x,z) + D_{z}(y) \right\} = \left\{ 2 + 0, 7 + 1 \right\} = 2 \\
+    D_{x} (z) &= \text{min} \left\{ c(x,y) + D_{y}(z), c(x,z) + D_{z}(z) \right\} = \left\{ 2 + 1, 7 + 0 \right\} = 3
 \end{align*}
+Similar calculations are done for the tables in node $y$ and $z$. The table for the second iteration of this algorithm becomes
+\begin{figure}[!htb]
+   \begin{minipage}{0.3\textwidth}
+    %   X-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & 0 & 2 & 3 \\
+        $y$ & $2$ & $0$ & $1$ \\
+        $z$ & $7$ & $1$ & $0$ \\
+    \end{tabular}
+    \caption*{Node-X table}
+   \end{minipage}
+   \begin{minipage}{0.3\textwidth}
+    %   Y-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & $0$ & $2$ & $7$ \\
+        $y$ & $2$ & $0$ & $1$ \\
+        $z$ & $7$ & $1$ & $0$ \\
+    \end{tabular}
+    \caption*{Node-Y table}
+   \end{minipage}
+   \begin{minipage}{0.3\textwidth}
+    %   Z-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & $0$ & $2$ & $7$ \\
+        $y$ & $2$ & $0$ & $1$ \\
+        $z$ & $3$ & $1$ & $0$ \\
+    \end{tabular}
+    \caption*{Node-Z table}
+   \end{minipage}
+\end{figure}
+With changes to the distance vectors in nodes $x$ and $z$ from our first iteration (the distance vector in $x$ has changed from $\left( 0,2,7 \right)$ to $\left( 0,2,3 \right)$) both nodes again broadcast these updated distance vectors to each of their neighbours. Calculating the distance vector for $x$ in this new iteration we have
+\begin{align*}
+    D_{x} (x) &= 0 \\
+    D_{x} (y) &= \text{min} \left\{ c(x,y) + D_{y}(y), c(x,z) + D_{z}(y) \right\} = \left\{ 2 + 0, 7 + 0 \right\} = 2 \\
+    D_{x} (z) &= \text{min} \left\{ c(x,y) + D_{y}(z), c(x,z) + D_{z}(z) \right\} = \left\{ 2 + 1, 3 + 0 \right\} = 3
+\end{align*}
+Similar calculations are done for the tables in node $z$. The table for the second iteration of this algorithm becomes
+\begin{figure}[!htb]
+   \begin{minipage}{0.3\textwidth}
+    %   X-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & 0 & 2 & 3 \\
+        $y$ & $2$ & $0$ & $1$ \\
+        $z$ & $3$ & $1$ & $0$ \\
+    \end{tabular}
+    \caption*{Node-X table}
+   \end{minipage}
+   \begin{minipage}{0.3\textwidth}
+    %   Y-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & $0$ & $2$ & $7$ \\
+        $y$ & $2$ & $0$ & $1$ \\
+        $z$ & $3$ & $1$ & $0$ \\
+    \end{tabular}
+    \caption*{Node-Y table}
+   \end{minipage}
+   \begin{minipage}{0.3\textwidth}
+    %   Z-node table
+    \centering
+     \begin{tabular}{ c | ccc } 
+        \, & $x$ & $y$ & $z$ \\
+        \hline
+        $x$ & $0$ & $2$ & $7$ \\
+        $y$ & $2$ & $0$ & $1$ \\
+        $z$ & $3$ & $1$ & $0$ \\
+    \end{tabular}
+    \caption*{Node-Z table}
+   \end{minipage}
+\end{figure}
+Since none of the distance vectors have a new distance vectors, each of the nodes sit and wait until another change in the network topology.
 
-\subsection*{Rail Fence Cipher}
-In the rail fence cipher, the plain text is written downwards and diagonally on successive "rails" of an imaginary fence, then moving up when the bottom rail is reached. When the top rail is reached, the message is written downwards again until the whole plaintext is written out. The message is then read off in rows. For example, if 3 "rails" and the message 'WE ARE DISCOVERED. FLEE AT ONCE' is used, the cipherer writes out
-\begin{lstlisting}
-    W . . . E . . . C . . . R . . . L . . . T . . . E
-    . E . R . D . S . O . E . E . F . E . A . O . C .
-    . . A . . . I . . . V . . . D . . . E . . . N . .
-\end{lstlisting}
-We then remove the spaces (.) and read left to right, top to bottom to get the ciphertext
-\begin{lstlisting}
-    WECRLTEERDSOEEFEAOCAIVDEN
-\end{lstlisting}
-As an example of solving this cupher we'll use a 3-rail fence to encode a new phrase and include spacing in between the words. Our ciphertext comes out as IA\_EZS\_ELYLK\_UZERLIPL. Note that our ciphertext has a total of 21 units (letters + spaces). This will be important later on as we try to decipher it.\\[1\baselineskip]
-To solve the cipher, you must know the height and cycle of the puzzle. The height is simply the number of fence rails used to create it. In this example, we said that 3 fence rails were used, so the height is 3. The height will always be higher than 2 and no more than the number of letters in the ciphertext (in this case 21) or else the phrase will not be properly encoded; the height can thus be discovered by process of elimination if not known.\\[1\baselineskip]
-To determine the puzzle width, which will tell us how many total units will be in each row, you must determine the "cycle" of letters. A "cycle" of letters runs from the top row, down through each subsequent row, and then up again, but stopping before reaching the top row again. (The next letter on the top row will actually begin the next cycle.) So a 2-rail puzzle has a "cycle" of 2 letters; a 3-rail puzzle has a "cycle" of 4 letters; a 4-rail puzzle has a "cycle" of 6 letters; etc. (See below.) The math equation for this is: "Cycle" = ([\# of rails] x 2) - 2 (since the top and bottom rows have half as many units per cycle as any middle row(s)).\\[1\baselineskip]
-Our 3-rail fence example has a "cycle" of 4 units. So divide the total units (letters + spaces) by the cycle number and round down to the next whole number. There are 21 units in the example, so our "base puzzle width" is 5 (21 / 4 = 5.25, which rounds down to 5). It is important to realize that there are 5 "full cycles" plus a "partial cycle" of 1 more letter (5 x 4 = 20 and 20 + 1 = 21 units). Therefore, the top row has 6 units in it (5 "full cycles" + the 1 extra letter that is starting off the 6th cycle all by itself). The middle row has 10 units (5 "full cycles" x 2 units for each cycle). The bottom row has 5 units (5 "full cycles" x 1 unit for each cycle since it is the bottom-most row).\\[1\baselineskip]
-Take the first 6 units from our ciphertext and write them across the top row, leaving much space between the units: {\bf IA\_EZS}\_ELYLK\_UZERLIPL
-\begin{lstlisting}
-    I . . . A . . . _ . . . E . . . Z . . . S
-\end{lstlisting}
-The middle row takes the next 10 units and adds 1 unit just after and 1 unit just before each unit in the top row: IA\_EZS{\bf \_ELYLK\_UZE}RLIPL
-\begin{lstlisting}
-    I . . . A . . . _ . . . E . . . Z . . . S
-    . _ . E . L . Y . L . K . _ . U . Z . E .
-\end{lstlisting}
-The bottom row gets the final 5 units written below and in between the pairs of units in the middle row: IA\_EZS\_ELYLK\_UZE{\bf RLIPL}.
-\begin{lstlisting}
-    I . . . A . . . _ . . . E . . . Z . . . S
-    . _ . E . L . Y . L . K . _ . U . Z . E .
-    . . R . . . L . . . I . . . P . . . L . .
-\end{lstlisting}
-Now just follow the down-up-down-up pattern to determine the original message: I\_REALLY\_LIKE\_PUZZLES!
 
+\subsection*{Checksum}
+Take the following truncated excerpt of an IPv4 packet. The header is shown in bold and the checksum is underlined.
+\begin{align*}
+    \texttt{{\bf 4500 0073 0000 4000 4011 \underline{b861} c0a8 0001}} \\
+    \texttt{{\bf c0a8 00c7} 0035 e97c 005f 279f 1e4b 8180}\\
+\end{align*}
+Find and backwards check the IPv4 checksum.\\[1\baselineskip]
+The header checksum is computed by treating each 2 bytes in the header as a number and summing these numbers using 1s complement arithmetic. A carry check and correction can be performed with each addition or as a post-process after all additions. If another carry is generated by the correction, another 1 is added to the sum. To calculate the checksum, we can first calculate the sum of each 16 bit value within the header, skipping only the checksum field itself.
+\[
+    4500_{16} + 0073_{16} + 0000_{16} + 4000_{16} + 4011_{16} + c0a8_{16} + 0001_{16} + c0a8_{16} + 00c7_{16} = 2479c_{16}
+\]
+The first digit is the carry count and is added to the sum:
+\[
+    2_{16} + 479c_{16} = 479e_{16}
+\]
+To obtain the checksum we take the one's complement of this result
+\begin{align*}
+    \overline{479e_{16}} = \overline{0100011110011110_{2}} = 1011100001100001_{2} = b861_{16}
+\end{align*}
+When verifying a checksum, the same procedure is used as above, except that the original header checksum is not omitted.
+\begin{align*}
+    4500_{16} + 0073_{16} + 0000_{16} + 4000_{16} + 4011_{16} + b861_{16} + c0a8_{16} + 0001_{16} + c0a8_{16} + 00c7_{16} = 2fffd_{16}
+\end{align*}
+Add the carry bits:
+\begin{align*}
+    fffd_{16} + 2_{16} = ffff_{16}
+\end{align*}
+Taking the ones' complement (flipping every bit) yields 0000, which indicates that no error is detected. IP header checksum does not check for the correct order of 16 bit values within the header. \\[3\baselineskip]
+If the Internet (Protocol) checksum method is adopted, what message will be sent if data is \texttt{5BBCEF35}? If the message received is  \texttt{5BBC EF35 B3F3}, will the message be accepted or dropped? (Show your working.)\\[1\baselineskip]
+Similar to the first question we can add together the 2-byte blocks using one's complement.
+\begin{align*}
+    5bbc_{16} + ef35_{16} = 14af1_{16}
+\end{align*}
+Again we add the carry of $1$ to our sum to get $4af1_{16} + 1_{16} = 4af2_{16}$. Finally we need to take the one's complement of this result to get our final check sum.
+\begin{align*}
+    \overline{}{4af2_{16}} = \overline{0100101011110010_{2}} = 1011010100001101_{2} = b50d_{16}
+\end{align*}
+This also means that the message being received shall be dropped since the payload and checksum do not match.
 
 \end{document}
