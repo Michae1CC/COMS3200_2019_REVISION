@@ -1033,6 +1033,43 @@ Total delay at a node (router) is given by
 \rule{\linewidth}{0.5mm}
 \noindent
 
+\subsection*{Ethernet Frame Structure}
+Ethernet frames have the following structure
+    \begin{lstlisting}
+<- 8 by  ->|<-   6 by    ->|<-   6 by   ->|<-2b->|<-    var   ->|<-4->|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Preamble |  Dest.Address | Src. Address | Type | ... Data ... | CRC |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    \end{lstlisting}
+\begin{description}
+    \item[Preamble (8 bytes)] The Ethernet frame begins with an 8-byte preamble field.
+    Each of the first 7 bytes of the preamble has a value of 10101010; the last byte is
+    10101011. The first 7 bytes of the preamble serve to “wake up” the receiving
+    adapters and to synchronize their clocks to that of the sender’s clock.
+    
+    \item[Destination address (6 bytes)] This field contains the MAC address of the destination
+    adapter, BB-BB-BB-BB-BB-BB. When adapter B receives an Ethernet
+    frame whose destination address is either BB-BB-BB-BB-BB-BB or the
+    MAC broadcast address, it passes the contents of the frame’s data field to the
+    network layer; if it receives a frame with any other MAC address, it discards
+    the frame.
+    
+    \item[Source address (6 bytes)] This field contains the MAC address of the adapter that
+    transmits the frame onto the LAN, in this example, {\tt AA-AA-AA-AA-AA-AA}.
+    
+    \item[Type field (2 bytes)] The type field permits Ethernet to multiplex network-layer
+    protocols. To understand this, we need to keep in mind that hosts can use other
+    network-layer protocols besides IP.
+    
+    \item[Data field (46 to 1,500 bytes)] This field carries the IP datagram. The maximum
+    transmission unit (MTU) of Ethernet is 1,500 bytes. This means that if the IP
+    datagram exceeds 1,500 bytes, then the host has to fragment the datagram. The minimum size of the data field is 46 bytes. This means that if the IP datagram is less than 46 bytes, the data field has to be “stuffed” to fill it out to 46 bytes.
+    
+    \item[Cyclic redundancy check (CRC) (4 bytes)] The purpose
+    of the CRC field is to allow the receiving adapter, adapter B, to detect bit
+    errors in the frame.
+\end{description}
+
 \subsection*{Error Detection and Correction}
 
 \begin{description}
@@ -1597,6 +1634,192 @@ Similar calculations are done for the tables in node $z$. The table for the seco
    \end{minipage}
 \end{figure}
 Since none of the distance vectors have a new distance vectors, each of the nodes sit and wait until another change in the network topology.
+
+
+
+\subsection*{CRC Error-Detection}
+In a CRC error-detecting scheme, suppose we choose a generator -of length $r+1$- $g = 110101_{2}$, (which can be represented in polynomial form as $g(x) = x^4 + x^4 + 0 \cdot x^3 + x^2 + 0 \cdot x^1 + x^0 $).
+\begin{enumerate}
+    \item {\it Encode the bits $D = 1010001101$ You have to show the remainder and the encoded message to send.} For a given piece of data, D, the sender will choose r additional bits, $R$, and append them to $D$ such that the resulting $d + r$ bit pattern (interpreted as a binary number) is exactly divisible by $g$ (i.e., has no remainder) using modulo-2 arithmetic. The process of error checking with CRCs is thus simple: The receiver divides the $d + r$ received bits by $g$. If the remainder is nonzero, the receiver knows that an error has occurred. We can compute $R$ with the formula
+    \[
+        R = D \cdot 2^r \pmod{g}
+    \]
+    In this example
+    \begin{align*}
+        D \cdot 2^r &= 1010001101_{2} \cdot {2^5}_{10} \\
+        &= 101000110100000_{2} \\
+        &= 20896_{10}
+    \end{align*}
+    and
+    \begin{align*}
+        g &= 110101_{2} \\
+        &= 53_{10}
+    \end{align*}
+    So $R = 20896_{10} \pmod{53} = 14_{10} = 01110_{2}$. Thus the data to send is $D = 101000110100000_{2} \; \text{XOR} \; 01110_{2} = 101000110101110_2$. we can use polynomial division in $\mathbb{Z}_2$ to verify our answer.
+    \item {\it Suppose the channel introduces two errors in the above-encoded message; i.e., a flip from 1 to 0 or from 0 to 1 in position 1 and 2. What is received? Can the error be detected or not?} Suppose that instead of receiving $D = 101000110101110_2$ from the example above we instead get $D = 011000110101110_2$. To check for corruption we divide $D$ by our chosen generator $g$ using polynomial division (we don't need to keep track of the result). Performing this division we find (subtract top from bottom at each underline):
+    \begin{align*}
+        110101 |& \, \overline{011000110101110} \\[-10pt]
+                & \, \, \underline{110101} \, \text{(shift by 9 bits)} \\[-10pt]
+                & \, \, \, 00010010101110 \\[-10pt]
+                & \qquad \underline{110101} \\[-10pt]
+                & \qquad 01000001110 \\[-10pt]
+                & \qquad \, \underline{110101} \\[-10pt]
+                & \qquad \, 0101011110 \\[-10pt]
+                & \qquad \, \, \underline{110101} \\[-10pt]
+                & \qquad \, \, 011111110 \\[-10pt]
+                & \qquad \quad \underline{110101} \\[-10pt]
+                & \qquad \quad 00101010 \\[-10pt]
+                & \qquad \qquad \underline{110101} \\[-10pt]
+                & \qquad \qquad 011111 \quad \text{(Remainder)}
+    \end{align*}
+    Since out remainder is non-zero we can in fact detect the error, since our remainder should be zero.
+    
+\end{enumerate}
+
+\subsection*{Forward Error Correction (FEC)}
+\begin{enumerate}
+    \item {\it Find the Hamming Distance between 10000101 and 00011111.} Hamming Distance between two 
+    codewords (or message words) is simply the number of bits in which they differ. Mathematically, for
+    two words $x=x_0x_1x_2\dots x_n$ and $y=y_0y_1y_2\dots y_n$ where $x_i,y_i\in\{0,1\}$, 
+    \[
+        d(x,y)=\sum_{i=0}^n (x_i+y_i\mod 2)
+    \]
+    where $d(x,y)\geq0$. Hence, for this example, the Hamming Distance is $4$.
+    
+    \item{\it Consider the following maps between message words and codewords for $n=2$ and $k=5$.}
+    \begin{align*}
+        00&\mapsto00000\\
+        01&\mapsto00111\\
+        10&\mapsto11001\\
+        11&\mapsto11110
+    \end{align*}
+    \begin{enumerate}
+        \item {\it Suppose 00 is sent and error pattern 01010 is introduced in transmission.
+        Can this error be detected and/or corrected using FEC?}
+        The codeword 00000 is sent however error pattern 01010 is introduced, so 00000+01010=01010 is
+        received. This is an invalid codeword, so the error pattern is detected. However, the distance to
+        the valid codewords are 2, 3, 3 and 2 respectively. Thus, the pattern cannot be corrected using FEC,
+        as there is more than 1 codeword with minimum distance from the received word.
+        
+        \item {\it Suppose 01 is sent and error pattern 00111 is introduced in transmission.
+        Can this error be detected and/or corrected using FEC?}
+        The codeword 00111 is sent however error pattern 00111 is introduced, so 00111+00111=00000 is
+        received. This is a valid codeword, so the error is not detected using FEC.
+        
+        \item {\it Suppose 11 is sent and error pattern 00100 is introduced in transmission.
+        Can this error be detected and/or corrected using FEC?}
+        The codewords 11110 is sent however error pattern 00100 is introduced, so 11110+00100=11010 is
+        received. This is an invalid codeword, so the error pattern is detected. Moreover, the distance
+        to valid codewords are 3, 4, 2 and 1. Thus, there is a unique codeword that is of minimum distance
+        to 11010, so it is corrected to 11110.
+    \end{enumerate}
+\end{enumerate}
+
+\subsection*{TCP deconstruction}
+The following 72 bytes (shown in hexdecimal) are from the packet dump of a TCP packet inside an IP datagram inside an Ethernet frame. Note that unlike a normal Wireshark packet dump, this packet dump {\bf does} include the Ethernet preamble and the Ethernet CRC.
+\begin{align*}
+    & \texttt{aa aa aa aa aa aa aa ab 00 00 5e 00 01 08 98 90} \\
+    & \texttt{96 d8 35 a9 08 00 45 00 00 28 41 71 40 00 80 06} \\
+    & \texttt{00 00 0a 21 02 98 d0 5c ec 52 e1 75 00 50 e7 3e} \\
+    & \texttt{50 0c 1b a0 80 d4 50 11 f7 39 c9 82 00 00 00 00} \\
+    & \texttt{00 00 00 00 c8 aa ab cd}
+\end{align*}
+Complete each of the following fields of the various protocol layers (in the
+indicated format).\\[1\baselineskip]
+Recall from the ethernet section that our IP datagram is cushioned by $22$ bytes on the left (consisting of preamble, dest addr, src addr and type) and $4$ bytes on the right (just the CRC check). Also the IP datagram headers take up the first $20$ bytes (assuming no options are given) of the data inside the ethernet frame, thus the bytes that make up our our ethernet frame are
+\begin{align*}
+    & \texttt{aa aa aa aa aa aa aa ab 00 00 5e 00 01 08 98 90} \\
+    & \texttt{96 d8 35 a9 08 00}
+\end{align*}
+the bytes that make up our IP header are
+\begin{align*}
+    & \texttt{45 00 00 28 41 71 40 00 80 06 00 00 0a 21 02 98} \\
+    & \texttt{d0 5c ec 52}
+\end{align*}
+Everything between the IP header and the CRC check will be our TCP datagram. Thus the bytes that make up our TCP are
+\begin{align*}
+    & \texttt{e1 75 00 50 e7 3e 50 0c 1b a0 80 d4 50 11 f7 39} \\
+    & \texttt{c9 82 00 00 00 00 00 00 00 00}
+\end{align*}
+For easy reference here are IP header and TCP datagram structures:
+\begin{figure}[H]
+    \centering
+    \caption{Ethernet frame structure}
+    \begin{lstlisting}
+|<- 8 by ->|<-   6 by    ->|<-   6 by   ->|<-2b->|<-    var   ->|<-4->|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Preamble |  Dest.Address | Src. Address | Type | ... Data ... | CRC |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    \end{lstlisting}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \caption{IP header structure}
+    \begin{lstlisting}
+ 0                   1                   2                   3   
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|Version|  IHL  |Type of Service|          Total Length         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Identification        |Flags|      Fragment Offset    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Time to Live |    Protocol   |         Header Checksum       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                       Source Address                          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Destination Address                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Options                    |    Padding    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    \end{lstlisting}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \caption{TCP datagram structure}
+    \begin{lstlisting}
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          Source Port          |        Destination Port       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Sequence Number                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                     Acknowledgment Number                     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Offset|  Res. |     Flags     |             Window            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|            Checksum           |         Urgent Pointer        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Options                    |    Padding    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    \end{lstlisting}
+\end{figure}
+Armed with this knowledge we can now produce the following information.
+\begin{enumerate}
+    \item {\it Ethernet Source Address. (Hexadecimal)} The Ethernet source address is located at the start of the $14^{th}$ byte in the Ethernet header. We can read this value off as $989096d835a9_{16}$
+    \item {\it Ethernet Destination Address. (Hexadecimal)} We can read this value off as $00005e000108_{16}$
+    \item {\it IP Source Address. (Dotted Decimal)} Read at the beginning of the $12^{th}$ byte in of IP header bytes as $0a.21.02.98_{16} = 10.33.2.152_{10}$
+    \item {\it IP Destination Address. (Dotted Decimal)}  Read at the beginning of the $16^{th}$ byte in of IP header bytes as $d0.5c.ec.52_{16} = 13.92.236.82_{10}$
+    \item {\it TCP Source Port. (Decimal)} Read off the first two bytes of the TCP datagram bytes as $e175_{16} = 57717_{10}$
+    \item {\it TCP Destination Port. (Decimal)} Read off the next two bytes of the TCP datagram bytes as $0050_{16} = 80_{10}$
+    \item {\it IP Version. (Decimal)} Upper four bits of $45_{16}$ which is $4_{16} = 4_{10}$.
+    \item {\it IP Header Length in bytes. (Decimal)} This is appears as IHL in the structure. Read off as $5_{16} = 5_{10}$, but this value needs to be multiplied by $4$ to give the true header length, so the answer is $20$ bytes (standard header size).
+    \item {\it Datagram Length in bytes. (Decimal)} Read off as $28_{16} = 40_{10}$.
+    \item {\it TCP Flags. (Binary)} TCP flags have the following structure - \texttt{Reserved (three bits) | Not set | Congestion Window | ECN-Echo | Urgent | Ack | Push | Reset | Syn | Fin } -. The corresponding values are given as $11_{16} = 000000010001_{2}$ now we we can give the values for the following flags
+    \begin{description}
+        \item[URG Flag] $0$
+        \item[ACK Flag] $1$
+        \item[PSH Flag] $0$
+        \item[RST Flag] $0$ (Reset)
+        \item[SYN Flag] $0$
+        \item[FIN Flag] $1$
+    \end{description}
+    \item {\it TCP Sequence Number. (Hexademical)} Read as $e73e500c_{16}$
+    \item {\it TCP Acknowledgement Number. (Hexademical)} Read as $1ba080d4_{16}$
+    \item {\it IP Header Checksum. (Hexademical)} Read as $0a21_{16}$
+    \item {\it TCP Internet Checksum. (Hexademical)} Read as $c982_{16}$
+    \item {\it Ethernet CRC. (Hexademical)} Read as $c8aaabcd_{16}$ (Last $4$ bytes of hex dump).
+\end{enumerate}
 
 
 \subsection*{Checksum}
