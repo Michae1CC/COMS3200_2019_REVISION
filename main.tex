@@ -25,7 +25,7 @@
 \usepackage{amsmath,amssymb,listings}
 
 \title{COMS3200: Revision} % Title of the document
-\author{Team Collusion}
+\author{Dan Kim}
 \date{University of Queensland --- \today}
 \begin{document}
 
@@ -1860,5 +1860,51 @@ Again we add the carry of $1$ to our sum to get $4af1_{16} + 1_{16} = 4af2_{16}$
     \overline{}{4af2_{16}} = \overline{0100101011110010_{2}} = 1011010100001101_{2} = b50d_{16}
 \end{align*}
 This also means that the message being received shall be dropped since the payload and checksum do not match.
+
+\subsection*{2018 Exam, Q3}
+For each of the following protocols, list the network layer associated with that
+protocol, and give a short explanation of the function of that protocol.
+If more than one layer is possible, any one correct answer will be acceptable.
+\begin{center}
+ \begin{longtable}{| c | m{8em} | m{30em} |} 
+ \hline
+ {\bf Protocol} & {\bf Protocol} & {\bf Function of Protocol} \\ [0.5ex]
+ \hline\hline
+HTTP & {\it Application} & 
+{\it To request and receive web pages from a server} \\
+ \hline
+DNS & Application & 
+It associates various information with domain names assigned to each of the participating entities. Most prominently, it translates more readily memorized domain names to the numerical IP addresses needed for locating and identifying computer services and devices with the underlying network protocols. \\
+ \hline
+POP & Application & 
+An application-layer Internet standard protocol used by e-mail clients to retrieve e-mail from a mail server. \\
+ \hline
+SMTP & Application & 
+A communication protocol for electronic mail transmission. \\
+ \hline
+SNMP & Application & 
+An Internet Standard protocol for collecting and organizing information about managed devices on IP networks and for modifying that information to change device behavior. \\
+ \hline
+ARP & Link-Layer and Network-Layer & 
+A communication protocol used for discovering the link layer address, such as a MAC address, associated with a given internet layer address. \\
+ \hline
+ICMP & Transport-Layer & 
+Used by network devices, including routers, to send error messages and operational information indicating, for example, that a requested service is not available or that a host or router could not be reached. \\
+ \hline
+SSL & Application-Layer & 
+Transport Layer Security (TLS), and its now-deprecated predecessor, Secure Sockets Layer (SSL), are cryptographic protocols designed to provide communications security over a computer network. \\
+ \hline
+BGP & Application-Layer & 
+A standardized exterior gateway protocol designed to exchange routing and reachability information among autonomous systems (AS) on the Internet. \\
+ \hline
+IEEE 802.3 & Data Link-Layer & 
+IEEE 802.3 (aka Ethernet Frame) A data link layer protocol data unit and uses the underlying Ethernet physical layer transport mechanisms. In other words, a data unit on an Ethernet link transports an Ethernet frame as its payload. \\
+ \hline
+QUIC & Transport-Layer & 
+An experimental general-purpose transport layer network protocol. QUIC improves performance of connection-oriented web applications that are currently using TCP. \\
+ \hline
+\end{longtable}
+\end{center}
+
 
 \end{document}
