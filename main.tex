@@ -1112,7 +1112,7 @@ Ethernet frames have the following structure
     frame and transmission time is wasted.
     \item[CSMA/CD (collision detection)] When a collision is detected abort transmission. After aborting,
     node enters \textbf{binary (exponential) backoff}: after $m^\text{th}$ collision, node chooses $K$
-    at random from $\{0,1,2,3,dots,2^m-1\}$ and then waits $512K$ bit times to try again. After $10$ or 
+    at random from $\{0,1,2,3, \ldots,2^m-1\}$ and then waits $512K$ bit times to try again. After $10$ or 
     more collisions, $K$ chosen equally randomly from $\{0,1,2,3,\dots,1023\}$.
     \item[Polling] Some ``master'' node invites ``slave'' node to transmit in turn.
     \item[Token passing (round robin)] Token passed from node to node sequentially. Transmit only when
@@ -1125,7 +1125,66 @@ Ethernet frames have the following structure
     \item[MAC and ARP] MAC addresses used at link layer to send frame ``locally'' from one interface
     to another physically-connected interface (same network, in IP address  sense), consisting of
     48bits. ARP (address resolution protocol) is used to determine an interfaces MAC address, knowing
-    its IP address. Each node on LAN keeps an ARP table, which stores (MAC, IP) mappings.
+    its IP address. Each node on LAN keeps an ARP table, which stores (MAC, IP) mappings, which are given the name ARP tables.
+    \item[Sending ARP datagrams within a Subnet] 
+    Suppose that the host with IP address 222.222.222.220 wants to send an IP
+    datagram to host 222.222.222.222. In this example, both the source and destination
+    are in the same subnet. To send a datagram,
+    the source must give its adapter not only the IP datagram but also the MAC address
+    for destination 222.222.222.222. The sending adapter will then construct a linklayer
+    frame containing the destination’s MAC address and send the frame into
+    the LAN.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.8]{images/arp_1.png}
+        \caption{Subnet used}
+    \end{figure}
+    The important question addressed in this section is, How does the sending
+    host determine the MAC address for the destination host with IP address
+    222.222.222.222? As you might have guessed, it uses ARP. An ARP module in the
+    sending host takes any IP address on the same LAN as input, and returns the corresponding
+    MAC address. In the example at hand, sending host 222.222.222.220
+    provides its ARP module the IP address 222.222.222.222, and the ARP module
+    returns the corresponding MAC address 49-BD-D2-C7-56-2A.
+    \item[Sending ARP datagrams off a Subnet]
+    Now let’s examine how a host on Subnet 1 would send a datagram to a host
+    on Subnet 2. Specifically, suppose that host 111.111.111.111 wants to send an IP
+    datagram to a host 222.222.222.222. The sending host passes the datagram to its
+    adapter, as usual. But the sending host must also indicate to its adapter an appropriate
+    destination MAC address. What MAC address should the adapter use? One
+    might be tempted to guess that the appropriate MAC address is that of the adapter
+    for host 222.222.222.222, namely, 49-BD-D2-C7-56-2A. This guess, however,
+    would be wrong! If the sending adapter were to use that MAC address, then none
+    of the adapters on Subnet 1 would bother to pass the IP datagram up to its network
+    layer, since the frame’s destination address would not match the MAC
+    address of any adapter on Subnet 1. The datagram would just die and go to datagram
+    heaven.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.6]{images/arp_2.png}
+        \caption{Subnet used}
+    \end{figure}
+    If we look carefully at Figure 4, we see that in order for a datagram to go
+    from 111.111.111.111 to a host on Subnet 2, the datagram must first be sent to the
+    router interface 111.111.111.110, which is the IP address of the first-hop router
+    on the path to the final destination. Thus, the appropriate MAC address for the
+    frame is the address of the adapter for router interface 111.111.111.110, namely,
+    E6-E9-00-17-BB-4B. How does the sending host acquire the MAC address for
+    111.111.111.110? By using ARP, of course! Once the sending adapter has this
+    MAC address, it creates a frame (containing the datagram addressed to
+    222.222.222.222) and sends the frame into Subnet 1. The router adapter on Subnet
+    1 sees that the link-layer frame is addressed to it, and therefore passes the
+    frame to the network layer of the router. Hooray—the IP datagram has successfully
+    been moved from source host to the router! But we are not finished. We still
+    have to move the datagram from the router to the destination. The router now has
+    to determine the correct interface on which the datagram is to be forwarded. As
+    discussed in Chapter 4, this is done by consulting a forwarding table in the router.
+    The forwarding table tells the router that the datagram is to be forwarded via
+    router interface 222.222.222.220. This interface then passes the datagram to its
+    adapter, which encapsulates the datagram in a new frame and sends the frame
+    into Subnet 2. This time, the destination MAC address of the frame is indeed the
+    MAC address of the ultimate destination. And how does the router obtain this
+    destination MAC address? From ARP, of course!
     \item[Routing to another LAN] Sender sends frame to gatway router MAC address but the intended
     recipient's IP address. Router forwards packet, replacing the source MAC with its own and
     destination MAC with that of the receiver (or intermediate router of necessary).
@@ -1331,6 +1390,8 @@ potentially detect new, undocumented attacks. On the other hand, it is an extrem
 challenging problem to distinguish between normal traffic and statistically unusual
 traffic. To date, most IDS deployments are primarily signature-based, although
 some include some anomaly-based features.
+
+\newpage
 
 \section*{Example Questions}
 \noindent
@@ -1906,5 +1967,108 @@ An experimental general-purpose transport layer network protocol. QUIC improves 
 \end{longtable}
 \end{center}
 
+\subsection*{2019 Assignment 3, Part 1}
+
+Consider the following subnet
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.6]{images/arp_3.png}
+    \caption{Subnet used}
+\end{figure}
+
+\begin{enumerate}
+    \item Suppose Host A has just joined the network and does not currently have an IP address. Complete the following table describing the four packets that will be transmitted through the network upon this event (in the order they were sent), assuming that all requests succeed and that Host A ends up with the IP address 192.168.1.2.
+    \begin{center}
+    \begin{longtable}{| c | c | c | c | c | c |} 
+    \hline
+    Protocol & Opcode & Src MAC addr & Dst MAC addr & Src/Sender IPv4 addr & Dst/Sender IPv4 addr \\
+    \hline
+    DHCP & 0x01 & 11:11:11:22:22:22 & FF:FF:FF:FF:FF:FF & 0.0.0.0 & 255.255.255.0 \\
+    \hline
+    DHCP & 0x02 & 11:11:11:33:33:33 & FF:FF:FF:FF:FF:FF & 192.168.1.3 & 255.255.255.0 \\
+    \hline
+    DHCP & 0x01 & 11:11:11:22:22:22 & FF:FF:FF:FF:FF:FF & 0.0.0.0 & 255.255.255.0 \\
+    \hline
+    DHCP & 0x02 & 11:11:11:33:33:33 & FF:FF:FF:FF:FF:FF & 192.168.1.3 & 255.255.255.0 \\
+    \hline
+    \end{longtable}
+    \end{center}
+    
+    \item Now suppose Host A wants to send a standard DNS query to D2. Host A has already gotten the IPv4 addresses of D2 and its gateway router from D1. R1's ARP table contains the IP and MAC addresses of all hosts in the network, and all other ARP tables are empty. Complete the following table describing the first four packets that will be transmitted through the network upon this event, assuming that there are no other ongoing communications.
+    \begin{center}
+    \begin{longtable}{| c | c | c | c | c | c |} 
+    \hline
+    Protocol & Opcode & Src MAC addr & Dst MAC addr & Src/Sender IPv4 addr & Dst/Sender IPv4 addr \\
+    \hline
+    ARP & 0x01 & 11:11:11:22:22:22 & FF:FF:FF:FF:FF:FF & 192.168.1.2 & 255.255.255.0 \\
+    \hline
+    ARP & 0x02 & 11:11:11:11:11:11 & 11:11:11:22:22:22 & 192.168.1.1 & 192.168.1.2 \\
+    \hline
+    DNS & 0 & 11:11:11:22:22:22 & 11:11:11:11:11:11 & 192.168.1.2 & 192.168.2.3 \\
+    \hline
+    DNS & 0 & 22:22:22:11:11:11 & 22:22:22:33:33:33 & 192.168.2.1 & 192.168.2.3 \\
+    \hline
+    \end{longtable}
+    \end{center}
+    
+    \item Host A now wants to establish a HTTP connection with a server (S). You may assume that Host A knows S's IP address and that all ARP tables contain all required information to transmit any packet. Complete the following table describing the packets that are sent to transmit Host A's request to initialise the connection, assuming the request is being sent from TCP port 4001 and the next available port number in R1's NAT table is 5001. Give the TCP flags as an 8-bit binary number representing the CWR to FIN flags.
+    \begin{center}
+    \begin{longtable}{| c | c | c | c | c | c |} 
+    \hline
+    Protocol & TCP flags & Src TCP port & Dst TCP port & Src/Sender IPv4 addr & Dst/Sender IPv4 addr \\
+    \hline
+    TCP & 0b000000000010 & 4001 & 80 & 192.168.1.2 & 21.22.23.24 \\
+    \hline
+    TCP & 0b000000000010 & 5001 & 80 & 41.42.43.44 & 21.22.23.24 \\
+    \hline
+    \end{longtable}
+    \end{center}
+\end{enumerate}
+
+\newpage
+
+\section*{Misc}
+\noindent
+\rule{\linewidth}{0.5mm}
+\noindent
+
+\subsection*{ASCII Table}
+
+\begin{lstlisting}
+Dec  Char                           Dec  Char     Dec  Char     Dec  Char
+---------                           ---------     ---------     ----------
+  0  NUL (null)                      32  SPACE     64  @         96  `
+  1  SOH (start of heading)          33  !         65  A         97  a
+  2  STX (start of text)             34  "         66  B         98  b
+  3  ETX (end of text)               35  #         67  C         99  c
+  4  EOT (end of transmission)       36  $         68  D        100  d
+  5  ENQ (enquiry)                   37  %         69  E        101  e
+  6  ACK (acknowledge)               38  &         70  F        102  f
+  7  BEL (bell)                      39  '         71  G        103  g
+  8  BS  (backspace)                 40  (         72  H        104  h
+  9  TAB (horizontal tab)            41  )         73  I        105  i
+ 10  LF  (NL line feed, new line)    42  *         74  J        106  j
+ 11  VT  (vertical tab)              43  +         75  K        107  k
+ 12  FF  (NP form feed, new page)    44  ,         76  L        108  l
+ 13  CR  (carriage return)           45  -         77  M        109  m
+ 14  SO  (shift out)                 46  .         78  N        110  n
+ 15  SI  (shift in)                  47  /         79  O        111  o
+ 16  DLE (data link escape)          48  0         80  P        112  p
+ 17  DC1 (device control 1)          49  1         81  Q        113  q
+ 18  DC2 (device control 2)          50  2         82  R        114  r
+ 19  DC3 (device control 3)          51  3         83  S        115  s
+ 20  DC4 (device control 4)          52  4         84  T        116  t
+ 21  NAK (negative acknowledge)      53  5         85  U        117  u
+ 22  SYN (synchronous idle)          54  6         86  V        118  v
+ 23  ETB (end of trans. block)       55  7         87  W        119  w
+ 24  CAN (cancel)                    56  8         88  X        120  x
+ 25  EM  (end of medium)             57  9         89  Y        121  y
+ 26  SUB (substitute)                58  :         90  Z        122  z
+ 27  ESC (escape)                    59  ;         91  [        123  {
+ 28  FS  (file separator)            60  <         92  \        124  |
+ 29  GS  (group separator)           61  =         93  ]        125  }
+ 30  RS  (record separator)          62  >         94  ^        126  ~
+ 31  US  (unit separator)            63  ?         95  _        127  DEL
+\end{lstlisting}
 
 \end{document}
