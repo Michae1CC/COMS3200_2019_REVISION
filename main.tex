@@ -31,6 +31,8 @@
 
 \maketitle % Print the title
 
+\tableofcontents
+
 \section*{Ch 1. Introduction}
 \noindent
 \rule{\linewidth}{0.5mm}
@@ -1944,7 +1946,7 @@ SMTP & Application &
 A communication protocol for electronic mail transmission. \\
  \hline
 SNMP & Application & 
-An Internet Standard protocol for collecting and organizing information about managed devices on IP networks and for modifying that information to change device behavior. \\
+An Internet Standard protocol for collecting and organizing information about managed devices on IP networks and for modifying that information to change device behavior. SNMP is widely used in network management for network monitoring. SNMP exposes management data in the form of variables on the managed systems organized in a management information base (MIB) which describe the system status and configuration. \\
  \hline
 ARP & Link-Layer and Network-Layer & 
 A communication protocol used for discovering the link layer address, such as a MAC address, associated with a given internet layer address. \\
@@ -1953,7 +1955,7 @@ ICMP & Transport-Layer &
 Used by network devices, including routers, to send error messages and operational information indicating, for example, that a requested service is not available or that a host or router could not be reached. \\
  \hline
 SSL & Application-Layer & 
-Transport Layer Security (TLS), and its now-deprecated predecessor, Secure Sockets Layer (SSL), are cryptographic protocols designed to provide communications security over a computer network. \\
+Transport Layer Security (TLS), and its now-deprecated predecessor, Secure Sockets Layer (SSL), are cryptographic protocols designed to provide communications security over a computer network. The TLS protocol aims primarily to provide privacy and data integrity between two or more communicating computer applications. \\
  \hline
 BGP & Application-Layer & 
 A standardized exterior gateway protocol designed to exchange routing and reachability information among autonomous systems (AS) on the Internet. \\
@@ -1963,6 +1965,12 @@ IEEE 802.3 (aka Ethernet Frame) A data link layer protocol data unit and uses th
  \hline
 QUIC & Transport-Layer & 
 An experimental general-purpose transport layer network protocol. QUIC improves performance of connection-oriented web applications that are currently using TCP. \\
+ \hline
+DHCP & Application-Layer & 
+Allows a host to obtain (be allocated) an IP address automatically. \\
+ \hline
+BitTorrent (BT) & Application-Layer & 
+A communication protocol for peer-to-peer file sharing (P2P) which is used to distribute data and electronic files over the Internet. \\
  \hline
 \end{longtable}
 \end{center}
